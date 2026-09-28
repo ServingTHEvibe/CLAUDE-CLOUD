@@ -18,6 +18,7 @@ Usage:
   python3 research/apify/dsm_scrape.py                    # full run
   python3 research/apify/dsm_scrape.py --source outscraper --skip-ads
   python3 research/apify/dsm_scrape.py --skip-reviews --skip-ads --per-search 10   # cheap test
+  python3 research/apify/dsm_scrape.py --import dataset.json   # Apify Console export
   python3 research/apify/dsm_scrape.py --score-only research/data/raw-places.json
 """
 import argparse, csv, datetime, json, os, re, sys, time, urllib.parse, urllib.request
@@ -112,6 +113,20 @@ def scrape_places(per_search):
 def complaint_matches(text):
     text = (text or "").lower()
     return [pat for pat in COMPLAINT_PATTERNS if re.search(pat, text)]
+
+
+def from_console_export(items):
+    """Tag places exported from an Apify Console run of apify-console-input.json,
+    whose search strings look like "plumber in Ankeny, IA"."""
+    places = {}
+    for p in items:
+        q, _, town = (p.get("searchString") or "").partition(" in ")
+        key = p.get("placeId") or p.get("url")
+        if key and key not in places:
+            p["_industry"] = industry_of(q)
+            p["_suburb"] = town.replace(", IA", "") or p.get("city") or ""
+            places[key] = p
+    return list(places.values())
 
 
 def needs_review_check(p):
@@ -223,6 +238,8 @@ def main():
     ap.add_argument("--skip-reviews", action="store_true")
     ap.add_argument("--skip-ads", action="store_true")
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--import", dest="import_file", metavar="DATASET_JSON",
+                    help="score a dataset exported (JSON) from an Apify Console run")
     ap.add_argument("--score-only", metavar="RAW_JSON", help="rescore a saved raw-places.json")
     a = ap.parse_args()
 
@@ -237,6 +254,9 @@ def main():
 
     os.makedirs(DATA_DIR, exist_ok=True)
     raw_path = os.path.join(DATA_DIR, "raw-places.json")
+    if a.import_file:
+        write_csv(from_console_export(json.load(open(a.import_file))), {}, {}, False)
+        return
     if a.score_only:
         raw = json.load(open(a.score_only))
         places, hits, ads = raw["places"], raw.get("hits", {}), raw.get("ads", {})
