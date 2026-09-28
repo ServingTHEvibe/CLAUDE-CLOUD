@@ -2,6 +2,12 @@
    Taylor Made Goodies — design system
    80% premium-minimal UI, 20% cinematic. The footage is the star.
    ========================================================================= */
+/* Self-hosted fonts (SIL Open Font License), latin subset. */
+@font-face { font-family: "Anton"; font-style: normal; font-weight: 400; font-display: swap; src: url("/fonts/anton-400.woff2") format("woff2"); }
+@font-face { font-family: "Instrument Serif"; font-style: normal; font-weight: 400; font-display: swap; src: url("/fonts/instrument-serif-400.woff2") format("woff2"); }
+@font-face { font-family: "Instrument Serif"; font-style: italic; font-weight: 400; font-display: swap; src: url("/fonts/instrument-serif-400-italic.woff2") format("woff2"); }
+@font-face { font-family: "Manrope"; font-style: normal; font-weight: 400 700; font-display: swap; src: url("/fonts/manrope-variable.woff2") format("woff2"); }
+
 :root {
   --ink: #0c0907;
   --ink-2: #16100c;
@@ -188,7 +194,7 @@ a { color: inherit; }
 .menu .btn { width: 100%; }
 
 /* ---------- 01 film ---------- */
-.film { position: relative; height: 620vh; background: var(--ink); }
+.film { position: relative; height: 940vh; background: var(--ink); }
 .film__stage {
   position: sticky; top: 0; height: 100vh; height: 100svh; overflow: hidden;
   contain: layout paint;
@@ -202,11 +208,16 @@ a { color: inherit; }
   position: absolute; inset: 0; pointer-events: none;
   background:
     radial-gradient(60% 70% at 64% 45%, rgba(240,196,105,.10), transparent 70%),
-    linear-gradient(90deg, rgba(12,9,7,.9) 0%, rgba(12,9,7,.55) 34%, rgba(12,9,7,0) 58%),
-    rgba(12,9,7,.5);
+    linear-gradient(90deg, rgba(12,9,7,.86) 0%, rgba(12,9,7,.5) 32%, rgba(12,9,7,0) 56%);
+}
+.film__dim { position: absolute; inset: 0; background: rgba(12,9,7,.5); pointer-events: none; }
+.film__wide {
+  position: absolute; display: block;
+  transform-origin: 50% 50%; will-change: transform, opacity;
 }
 .film__canvas {
   position: absolute; display: block;
+  clip-path: circle(0px at 50% 50%);
   transform-origin: 50% 45%; will-change: transform;
   -webkit-mask-image: linear-gradient(to right, transparent 0, #000 14%, #000 88%, transparent 100%), linear-gradient(to bottom, transparent 0, #000 7%, #000 88%, transparent 100%);
   -webkit-mask-composite: source-in;
@@ -244,7 +255,7 @@ a { color: inherit; }
 }
 .beat .display { font-size: clamp(3.2rem, 7.4vw, 8.2rem); }
 .beat--hero .display { font-size: clamp(3.2rem, 6.3vw, 7.4rem); }
-.beat--finale .display { font-size: clamp(3rem, 5.6vw, 6.6rem); }
+.beat--finale .display, .beat--compact .display { font-size: clamp(3rem, 5.6vw, 6.6rem); }
 .beat--hero .eyebrow { color: var(--cream); opacity: .9; }
 .beat__ctas { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 34px; }
 .beat--finale { display: flex; flex-direction: column; align-items: flex-start; gap: 30px; }
@@ -494,7 +505,7 @@ textarea.input { padding: 12px 16px; min-height: 84px; resize: vertical; }
 @media (max-width: 1100px) {
   .nav__links { gap: 18px; }
 }
-@media (max-width: 899px) {
+@media (max-width: 899px), (orientation: portrait) and (max-width: 1199px) {
   :root { --nav-h: 64px; }
   .nav { padding: 10px 12px; }
   .nav__shell { height: 52px; padding: 0 6px 0 16px; }
@@ -509,9 +520,13 @@ textarea.input { padding: 12px 16px; min-height: 84px; resize: vertical; }
   .nav__burger[aria-expanded="true"] i:first-of-type { transform: translateY(3.75px) rotate(45deg); }
   .nav__burger[aria-expanded="true"] i:last-of-type { transform: translateY(-3.75px) rotate(-45deg); }
 
-  .film { height: 440vh; }
-  .film__light { background: linear-gradient(180deg, rgba(12,9,7,0) 35%, rgba(12,9,7,.78) 62%, rgba(12,9,7,.95) 100%), rgba(12,9,7,.5); }
+  .film { height: 680vh; }
+  .film__light { background: linear-gradient(180deg, rgba(12,9,7,0) 40%, rgba(12,9,7,.78) 64%, rgba(12,9,7,.95) 100%); }
   .film__backdrop { transform-origin: 50% 30%; }
+  .film__wide {
+    -webkit-mask-image: linear-gradient(to bottom, #000 72%, transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 72%, transparent 100%);
+  }
   .beat {
     left: var(--gutter); right: var(--gutter); width: auto;
     top: auto; bottom: calc(92px + env(safe-area-inset-bottom)); transform: translateY(var(--by, 0px));
@@ -551,11 +566,11 @@ textarea.input { padding: 12px 16px; min-height: 84px; resize: vertical; }
 /* Poster mode: reduced motion, or the canvas could not start. */
 .is-static .film { height: auto; }
 .is-static .film__stage { position: relative; height: auto; min-height: 100svh; display: grid; }
-.is-static .film__canvas, .is-static .film__dust, .is-static .readout, .is-static .scrollcue, .is-static .loader, .is-static .beat:not(.beat--hero) { display: none; }
+.is-static .film__canvas, .is-static .film__wide, .is-static .film__dust, .is-static .readout, .is-static .scrollcue, .is-static .loader, .is-static .beat:not(.beat--hero) { display: none; }
 .is-static .film__backdrop { display: none; }
 .is-static .film__poster { display: block; position: absolute; right: 0; top: 0; height: 100%; width: auto; max-width: 70%; object-fit: cover; -webkit-mask-image: linear-gradient(to right, transparent, #000 25%); mask-image: linear-gradient(to right, transparent, #000 25%); }
 .is-static .beat--hero { opacity: 1; position: relative; transform: none; top: auto; align-self: center; padding: 120px 0 80px; }
-@media (max-width: 899px) {
+@media (max-width: 899px), (orientation: portrait) and (max-width: 1199px) {
   .is-static .film__stage { align-content: start; min-height: 0; }
   .is-static .film__poster { position: relative; max-width: none; width: 100%; height: auto; -webkit-mask-image: linear-gradient(to bottom, #000 70%, transparent); mask-image: linear-gradient(to bottom, #000 70%, transparent); }
   .is-static .beat--hero { position: relative; bottom: auto; padding: 0 0 70px; margin-top: -60px; }

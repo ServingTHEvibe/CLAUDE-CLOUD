@@ -7,15 +7,16 @@ The handoff describes an existing build (`taylormadegoodies-scrollfilm-deploy.zi
 in this session:
 
 - The repository contained only `research/` (unrelated lead-gen notes).
-- Uploads: the Scroll-Film Studio skill zip and **one** video, the dessert/logo footage
-  (Video B: 1404×1476, 24fps, 10.04s, 241 frames). The Atlanta mural footage (Video A) and the
-  earlier build were not uploaded.
+- Uploads: the Scroll-Film Studio skill zip and the dessert/logo footage (Video B: 1404×1476,
+  24fps, 10.04s, 241 frames). The Atlanta mural footage (Video A: 1916×1080, 24fps, 8.04s,
+  193 frames) arrived in a later upload and is now the film's opening chapter. The earlier
+  build was never uploaded.
 
 So items 1–9 below describe this build, not the missing one. The creative direction was
 kept exactly as specified: the cinematic scroll film, the Taylor Made Goodies portal, the
-cream/black/gold/pink palette, the concierge, and no invented business facts. The film engine is
-built as a chapter list so the mural footage can open the film without code changes (see
-README → "Add the Atlanta mural footage").
+cream/black/gold/pink palette, the concierge, and no invented business facts. The narrative
+is ATLANTA WALL → TAYLOR MADE GOODIES → INTO THE GOODIES: the mural pushes into the lettering,
+a cookie flies into the lens, and a circular portal opens out of it into the dessert film.
 
 ## 1. Stack
 Static HTML/CSS/ES modules, with GSAP 3.15 + ScrollTrigger and Lenis 1.3 vendored in
@@ -29,12 +30,14 @@ nothing in the brief needed one, and it keeps the deploy trivial.
 `film-config.js`, `main.js` (scroll/motion), `concierge.js` (UI), `lib/orders.js` (API).
 
 ## 3. Hero
-A sticky 100svh stage inside a tall scroll driver (620vh desktop, 440vh mobile). Sticky is used
+A sticky 100svh stage inside a tall scroll driver (940vh desktop, 680vh mobile). Sticky is used
 instead of a GSAP pin, so there's no pin-spacer refresh ordering and it behaves better with
 mobile address-bar resizes. Layers, back to front:
-- blurred backdrop (a 16px copy of the current frame, upscaled; background plane ≈0.2×)
+- blurred backdrop (a 16px copy of the current frame, upscaled; background plane ≈0.2×) and its dim layer
+- the mural canvas, full-bleed (extra push-in that accelerates through the portal, then fades)
 - light and gradient scrims
-- the footage canvas in a feathered "portal" (product plane, push-in scale + drift)
+- the dessert canvas in a feathered "portal" (product plane). It opens as a growing circle
+  from the centre of the screen, then pushes in and drifts
 - gold dust particles (foreground FX plane, fastest)
 - vignette + animated grain
 - beat typography, chapter readout, scroll cue, loader
@@ -48,8 +51,10 @@ reverted automatically on breakpoint change. The modules run once (no framework 
 so StrictMode-style duplication doesn't apply.
 
 ## 5. Frame sequence
-`scripts/extract-frames.sh`: native 24fps, WebP, 1080w desktop (13 MB, 241 frames) and 720w
-mobile (7.8 MB). Loading order: opening run (24 desktop / 12 mobile) → every 8th → 4th → 2nd →
+`scripts/extract-frames.sh`: native 24fps, WebP. Mural: 125 frames, 1600w desktop (13 MB) /
+960w mobile (6.5 MB). Desserts: 241 frames, 1080w (13 MB) / 720w (7.8 MB). Each chapter draws
+to its own canvas, and each canvas holds its boundary frame so both images are ready during
+the portal. Loading order: opening run (24 desktop / 12 mobile) → every 8th → 4th → 2nd →
 the rest, idle-paced with `requestIdleCallback`. Frames just ahead of the playhead jump the
 queue after a fast scroll. Decoding uses an `ImageBitmap` sliding window (48 ahead / 30 behind
 desktop, 28/14 mobile) so draws are blits, not main-thread decodes. The nearest loaded frame
@@ -65,8 +70,10 @@ Canvas DPR is capped at 1.5 and at 1.2× the source width.
   on the CPU. Real devices composite these on the GPU. Still worth checking on a mid-range
   Android and an iPhone once it's deployed.
 - Backdrop-filter glass is limited to the nav, launcher and ghost buttons.
-- Payload: about 13 MB of frames on desktop and 8 MB on mobile, streamed progressively. First
-  paint needs only frame 0 (preloaded per breakpoint).
+- Payload: about 26 MB of frames on desktop and 14 MB on mobile, streamed progressively and
+  cached immutably. First paint needs only mural frame 0 (preloaded per breakpoint), and the
+  first dessert frame loads early so the portal is never empty.
+- Fonts are self-hosted (87 KB, preloaded), so there's no Google Fonts round-trip.
 
 ## 7. Mobile
 The footage is near-square. Cover-cropping it would cut the logo on a laptop and about half of
@@ -88,20 +95,19 @@ below, and to the right of the copy on desktop. Mobile also gets:
   the nav and footer use a live-type lockup, and the real logo appears in the film itself.
 
 ## 9. UI/UX opportunities (next)
-- Add the mural footage as chapter 1 (the only missing piece of the original concept).
 - Real product photography, names and pricing, which unlocks a checkout step in the concierge.
 - A social/event proof section once there are real posts or photos (deliberately absent).
 - A founder story in Our Story.
-- Self-host the fonts to remove the Google Fonts round-trip.
 
 ## 10. Verification run
 - `npm test`: 10/10 API tests pass (validation, honeypot, 405/400/503/502, webhook delivery).
 - `scripts/verify.mjs` at 1440×900, 1728×1117, 1920×1080, 1024×1366, 834×1194, 390×844,
   393×852 and 430×932: no page errors and 0px horizontal overflow at every size. The film
-  scrubs, with a different canvas centre pixel at each of 8 positions. Console noise was
-  limited to Google Fonts certificate errors from this sandbox's TLS proxy (fixed in the
-  harness with `ignoreHTTPSErrors`), plus an intermittent `ERR_TOO_MANY_RETRIES` on one or two
-  runs that didn't reproduce in three targeted re-runs with request logging.
+  scrubs through both chapters and the portal. Earlier runs showed intermittent
+  `ERR_TOO_MANY_RETRIES` errors; request logging traced every one to Google Fonts through
+  this sandbox's proxy. Fonts are now self-hosted, and the final runs are clean at all 8 sizes.
+- Portrait tablets (1024×1366, 834×1194) use the mobile composition, so the 16:9 mural isn't
+  crushed behind desktop copy.
 - `scripts/e2e-concierge.mjs`: the full order (every field, photo upload, edit from review)
   arrived at the webhook with the correct payload. With no channel configured, the fallback
   path keeps the draft and offers copy/email/text.

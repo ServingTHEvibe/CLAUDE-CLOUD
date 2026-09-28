@@ -13,11 +13,12 @@ public/
   css/site.css          design tokens, layout, responsive, reduced-motion
   js/main.js            Lenis + GSAP/ScrollTrigger (one loop), depth planes, nav, reveals, 3D cards
   js/film.js            frame engine: progressive loading, ImageBitmap window, canvas draw
-  js/film-config.js     chapter list (add the mural footage here), readout labels
+  js/film-config.js     chapters (mural → portal → desserts), portal window, readout labels
   js/concierge.js       Goodie Concierge conversation + UI
   js/lib/orders.js      OrderLead payload, submitOrder(), config, image compression
   film/<chapter>/{d,m}/ WebP frames, desktop 1080w / mobile 720w, native 24fps
   img/                  editorial stills + OG image (all cut from the supplied footage)
+  fonts/                Anton, Instrument Serif, Manrope (self-hosted, SIL OFL, latin subset)
   vendor/               GSAP 3, ScrollTrigger, Lenis (vendored, no CDN dependency)
 api/
   order.js              POST: validate → deliver (email / SMS / webhook)
@@ -75,22 +76,34 @@ Taking payment is not wired in. Nothing on the site states prices, so the concie
 request and the business confirms pricing and timing with the customer. When there's a real
 menu and pricing, a Square or Stripe checkout link can go into the concierge's success step.
 
-## Add the Atlanta mural footage (Video A)
+## The film: two chapters, one shot
 
-Only the dessert footage (Video B) was available for this build. To open the film on the mural:
+`public/js/film-config.js` lists the chapters, which play back to back as one frame index:
+
+| Chapter | Source | Frames | Layout |
+|---|---|---|---|
+| `a-mural` | Video A (Atlanta mural), frames 0–124 | 125 | `cover`: full-bleed, 1600w desktop / 960w mobile |
+| `b-goodies` | Video B (desserts), all frames | 241 | `portal`: feathered window, 1080w / 720w |
+
+The mural is cut at frame 124, where the cookie flies into the lens and fills the frame. A
+circular portal opens out of that cookie into the dessert film (`FILM.portal`, 0.30 → 0.36
+progress). The source then pulls back out to the wall, which would reverse the camera
+direction, so that part isn't used.
+
+Re-extracting or swapping footage:
 
 ```bash
-FFMPEG=ffmpeg scripts/extract-frames.sh path/to/mural.mp4 a-mural        # prints the frame count
+FFMPEG=ffmpeg DESKTOP_W=1600 MOBILE_W=960 scripts/extract-frames.sh source/video-a-mural.mp4 a-mural 0 125
+FFMPEG=ffmpeg scripts/extract-frames.sh source/video-b-goodies.mp4 b-goodies
 ```
 
-Then, in `public/js/film-config.js`:
-- put `{ id: 'a-mural', frames: <count> }` **first** in `chapters`
-- set `aspect` to the footage's aspect if it differs (both chapters should match)
-- add a readout entry for the mural chapter
+If a frame count changes, update it in `film-config.js`. Then re-time the portal window, the
+readout, and the `data-in / data-peak / data-out` values on the `.beat` elements in `index.html`
+(all are 0–1 progress through the whole film). The film's scroll length is `.film { height }`
+in `site.css` (940vh desktop, 680vh mobile).
 
-Finally, re-time the `data-in / data-peak / data-out` values on the `.beat` elements in
-`index.html`. They are 0–1 progress through the whole film. Consider raising `.film { height }`
-in `site.css` so the longer film keeps the same scroll pace.
+Phones and portrait tablets (`FILM.mobileQuery`) get their own composition: the mural fills the
+top ~64% of the screen and the copy sits below it.
 
 ## Content still needed from the business
 

@@ -26,11 +26,11 @@
   <link rel="icon" href="/favicon.png" type="image/png">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 
-  <link rel="preload" as="image" href="/film/b-goodies/d/0000.webp" media="(min-width: 900px)">
-  <link rel="preload" as="image" href="/film/b-goodies/m/0000.webp" media="(max-width: 899px)">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Instrument+Serif:ital@0;1&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="preload" as="image" href="/film/a-mural/d/0000.webp" media="(min-width: 900px) and (orientation: landscape), (min-width: 1200px)">
+  <link rel="preload" as="image" href="/film/a-mural/m/0000.webp" media="(max-width: 899px), (orientation: portrait) and (max-width: 1199px)">
+  <link rel="preload" href="/fonts/anton-400.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/fonts/manrope-variable.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/fonts/instrument-serif-400-italic.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/css/site.css">
 
   <script type="application/ld+json">
@@ -82,14 +82,17 @@
     <section class="film" data-film aria-label="Taylor Made Goodies">
       <div class="film__stage" data-stage>
         <canvas class="film__backdrop" data-backdrop aria-hidden="true"></canvas>
+        <div class="film__dim" aria-hidden="true"></div>
+        <canvas class="film__wide" data-canvas-wide role="img"
+          aria-label="The Taylor Made Goodies mural on an Atlanta street at night: gold lettering, the chef, a pink ATLANTA sign and the city skyline."></canvas>
         <div class="film__light" aria-hidden="true"></div>
         <canvas class="film__canvas" data-canvas role="img"
           aria-label="The Taylor Made Goodies chef and gold wordmark give way to cookie dough, a chocolate chip cookie, and a strawberry layer cake."></canvas>
-        <img class="film__poster" src="/img/still-240.webp" alt="The Taylor Made Goodies chef behind a strawberry layer cake, with a cookie and the gold wordmark." width="1404" height="1476">
+        <img class="film__poster" src="/img/mural-0.webp" alt="The Taylor Made Goodies mural on an Atlanta street at night, with the chef, gold lettering and the city skyline." width="1916" height="1080">
         <canvas class="film__dust" data-dust aria-hidden="true"></canvas>
         <div class="film__vignette" aria-hidden="true"></div>
 
-        <div class="beat beat--hero" data-beat data-in="-0.1" data-peak="0" data-out="0.13">
+        <div class="beat beat--hero" data-beat data-in="-0.1" data-peak="0" data-out="0.09">
           <p class="eyebrow">Atlanta &nbsp;·&nbsp; Cookies &amp; Cakes<span class="hide-sm"> &nbsp;·&nbsp; Made to order</span></p>
           <h1 class="display">Made for<br>your <em>moment.</em></h1>
           <p class="lede">Cookies, cakes and treat boxes, built around whatever you're celebrating.</p>
@@ -99,23 +102,33 @@
           </div>
         </div>
 
-        <div class="beat" data-beat data-in="0.28" data-peak="0.38" data-out="0.5">
+        <div class="beat" data-beat data-in="0.17" data-peak="0.225" data-out="0.285">
+          <p class="eyebrow"><span class="dot"></span>Atlanta</p>
+          <h2 class="display">Born on<br><em>these streets.</em></h2>
+        </div>
+
+        <div class="beat beat--compact" data-beat data-in="0.375" data-peak="0.43" data-out="0.5">
+          <p class="eyebrow"><span class="dot"></span>Taylor Made Goodies</p>
+          <h2 class="display">Made to order.<br><em>Made to share.</em></h2>
+        </div>
+
+        <div class="beat" data-beat data-in="0.527" data-peak="0.592" data-out="0.671">
           <p class="eyebrow"><span class="dot"></span>Cookies</p>
           <h2 class="display">Golden edge.<br><em>Soft center.</em></h2>
         </div>
 
-        <div class="beat" data-beat data-in="0.56" data-peak="0.66" data-out="0.78">
+        <div class="beat" data-beat data-in="0.711" data-peak="0.776" data-out="0.855">
           <p class="eyebrow"><span class="dot"></span>Cakes</p>
           <h2 class="display">Stacked high.<br><em>Cut to share.</em></h2>
         </div>
 
-        <div class="beat beat--finale" data-beat data-in="0.84" data-peak="0.94" data-out="2">
+        <div class="beat beat--finale" data-beat data-in="0.895" data-peak="0.961" data-out="2">
           <h2 class="display">Made different.<br><em>Made Taylor.</em></h2>
           <button class="btn btn--gold btn--lg" type="button" data-open-concierge>Start an order</button>
         </div>
 
         <div class="readout" aria-hidden="true">
-          <span class="readout__label" data-readout>Taylor Made</span>
+          <span class="readout__label" data-readout>Atlanta</span>
           <span class="readout__bar"><i data-readout-bar></i></span>
         </div>
         <div class="scrollcue" data-scrollcue aria-hidden="true"><span>Scroll</span><i></i></div>
@@ -240,7 +253,7 @@
 
     <!-- ============ 07 — ORDER CTA ============ -->
     <section class="cta" aria-labelledby="cta-title">
-      <div class="cta__media" aria-hidden="true"><img src="/img/still-60.webp" alt="" loading="lazy" width="1404" height="1476"></div>
+      <div class="cta__media" aria-hidden="true"><img src="/img/mural-end.webp" alt="" loading="lazy" width="1916" height="1080"></div>
       <div class="cta__inner" data-rise>
         <p class="kicker kicker--pink">Start an order</p>
         <h2 id="cta-title" class="display display--xxl">Let's make it<br><em>Taylor made.</em></h2>

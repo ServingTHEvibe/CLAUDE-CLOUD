@@ -90,6 +90,7 @@ window.addEventListener('scroll', updateNav, { passive: true });
 // ---------------------------------------------------------------------------
 const stage = $('[data-stage]');
 const canvas = $('[data-canvas]');
+const wide = $('[data-canvas-wide]');
 const backdrop = $('[data-backdrop]');
 const loader = $('[data-loader]');
 const loaderBar = $('[data-loader-bar]');
@@ -105,7 +106,7 @@ let filmReady = Promise.resolve();
 const useFilm = canAnimate && !!canvas.getContext && 'Promise' in window;
 if (useFilm) {
   film = createFilm({
-    canvas, backdrop, stage,
+    canvases: { cover: wide, portal: canvas }, backdrop, stage,
     onLoadProgress: (p) => { loaderBar.style.transform = `scaleX(${p})`; },
   });
   // Never hold the page hostage to a slow network: reveal after 6s regardless.
@@ -123,12 +124,33 @@ function beatAlpha(b, p) {
 
 let lastReadout = '';
 let settleFilm = () => {};
+const ease = (t) => 1 - Math.pow(1 - t, 3);
+let portalState = '';
 function renderFilm(p) {
   film.setProgress(p);
   const m = mobileMQ.matches;
+  const { open, done } = FILM.portal;
+  const bStart = film.startOf('b-goodies');
+  const q = clamp01((p - bStart) / (1 - bStart)); // progress inside the goodies film
+  const t = clamp01((p - open) / (done - open)); // portal transition
+
   // Depth planes. Background drifts least, the footage (product plane) pushes in,
   // foreground dust travels fastest.
-  canvas.style.transform = `translate3d(0, ${(-p * (m ? 1.5 : 2.5)).toFixed(2)}%, 0) scale(${(1 + p * (m ? 0.05 : 0.09)).toFixed(4)})`;
+  // Mural: keeps pushing through the transition, then hands over to the portal.
+  wide.style.transform = `scale(${(1 + clamp01(p / open) * 0.05 + ease(t) * 0.35).toFixed(4)})`;
+  wide.style.opacity = String(1 - clamp01((t - 0.55) / 0.45));
+  // Portal: a circle opens out of the cookie at the centre of the screen.
+  const state = t <= 0 ? 'closed' : t >= 1 ? 'open' : 'opening';
+  if (state === 'opening') {
+    const r = canvas.getBoundingClientRect();
+    const cx = window.innerWidth / 2 - r.left, cy = (m ? r.height * 0.5 : window.innerHeight / 2 - r.top);
+    const maxR = Math.hypot(Math.max(cx, r.width - cx), Math.max(cy, r.height - cy));
+    canvas.style.clipPath = `circle(${(ease(t) * maxR).toFixed(1)}px at ${cx.toFixed(0)}px ${cy.toFixed(0)}px)`;
+  } else if (state !== portalState) {
+    canvas.style.clipPath = state === 'closed' ? 'circle(0px at 50% 50%)' : 'none';
+  }
+  if (state !== portalState) { portalState = state; stage.dataset.portal = state; }
+  canvas.style.transform = `translate3d(0, ${(-q * (m ? 1.5 : 2.5)).toFixed(2)}%, 0) scale(${(1 + q * (m ? 0.05 : 0.09)).toFixed(4)})`;
   backdrop.style.transform = `scale(${(1.15 + p * 0.04).toFixed(4)})`;
   dust.el.style.transform = `translate3d(0, ${(-p * (m ? 10 : 22)).toFixed(2)}vh, 0)`;
 
@@ -240,7 +262,7 @@ function initMotion() {
   }
 
   const mm = gsap.matchMedia();
-  mm.add({ desktop: '(min-width: 900px)', mobile: '(max-width: 899px)' }, (ctx) => {
+  mm.add({ desktop: '(min-width: 900px) and (orientation: landscape), (min-width: 1200px)', mobile: FILM.mobileQuery }, (ctx) => {
     const { desktop } = ctx.conditions;
     const amt = desktop ? 1 : 0.45;
 
