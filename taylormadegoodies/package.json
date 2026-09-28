@@ -1,0 +1,16 @@
+{
+  "name": "taylormadegoodies",
+  "private": true,
+  "type": "module",
+  "description": "Taylor Made Goodies cinematic scroll-film site with the Goodie Concierge order intake.",
+  "scripts": {
+    "dev": "node scripts/dev-server.mjs 4173",
+    "test": "node --test tests/*.test.mjs",
+    "verify": "node scripts/verify.mjs",
+    "frames": "bash scripts/extract-frames.sh"
+  },
+  "engines": { "node": ">=18" },
+  "devDependencies": {
+    "playwright-core": "^1.47.0"
+  }
+}
