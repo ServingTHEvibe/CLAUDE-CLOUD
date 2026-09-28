@@ -7,12 +7,16 @@ Steps:
   3. Meta Ads Library check per business              (apify/facebook-ads-scraper)
   4. Score and write research/data/dsm-leads-<date>.csv
 
-Auth: set APIFY_TOKEN, or run where a proxy injects Apify credentials.
-Needs outbound access to api.apify.com.
+Sources (--source):
+  apify       APIFY_TOKEN (or a proxy that injects it); needs api.apify.com
+  outscraper  OUTSCRAPER_API_KEY; needs api.app.outscraper.com. Maps + reviews
+              come from Outscraper (limit 500, drop duplicates, US, en); the Meta
+              ads check still uses Apify, so pass --skip-ads without Apify access.
 
 Usage:
   python3 research/apify/dsm_scrape.py --dry-run          # show plan and estimated volume
   python3 research/apify/dsm_scrape.py                    # full run
+  python3 research/apify/dsm_scrape.py --source outscraper --skip-ads
   python3 research/apify/dsm_scrape.py --skip-reviews --skip-ads --per-search 10   # cheap test
   python3 research/apify/dsm_scrape.py --score-only research/data/raw-places.json
 """
@@ -105,6 +109,11 @@ def scrape_places(per_search):
     return list(places.values())
 
 
+def complaint_matches(text):
+    text = (text or "").lower()
+    return [pat for pat in COMPLAINT_PATTERNS if re.search(pat, text)]
+
+
 def needs_review_check(p):
     return (p.get("totalScore") or 5) < 4.6 or (p.get("reviewsCount") or 0) < 400
 
@@ -123,8 +132,7 @@ def scrape_reviews(places, per_place):
         for r in items:
             if (r.get("stars") or 5) > 3:
                 continue
-            text = (r.get("text") or "").lower()
-            matched = [pat for pat in COMPLAINT_PATTERNS if re.search(pat, text)]
+            matched = complaint_matches(r.get("text"))
             if matched:
                 h = hits.setdefault(r.get("placeId") or r.get("url"), [])
                 h.append({"stars": r.get("stars"), "text": r.get("text", "")[:300],
@@ -207,7 +215,9 @@ def write_csv(places, hits, ads, ads_checked):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--per-search", type=int, default=25, help="places per query per suburb")
+    ap.add_argument("--source", choices=["apify", "outscraper"], default="apify")
+    ap.add_argument("--per-search", type=int, default=None,
+                    help="places per query per suburb (default 25 apify, 500 outscraper)")
     ap.add_argument("--reviews-per-place", type=int, default=15)
     ap.add_argument("--ads-per-business", type=int, default=3)
     ap.add_argument("--skip-reviews", action="store_true")
@@ -216,11 +226,13 @@ def main():
     ap.add_argument("--score-only", metavar="RAW_JSON", help="rescore a saved raw-places.json")
     a = ap.parse_args()
 
+    if a.per_search is None:
+        a.per_search = 500 if a.source == "outscraper" else 25
     n_queries = sum(len(q) for q in CATEGORIES.values()) * len(SUBURBS)
     if a.dry_run:
         print(f"{len(SUBURBS)} suburbs x {n_queries // len(SUBURBS)} queries = {n_queries} searches")
         print(f"up to {n_queries * a.per_search} raw places before dedupe "
-              f"(Google Maps scraper is roughly $4 per 1,000 places)")
+              f"via {a.source} (both bill roughly $3-4 per 1,000 places)")
         return
 
     os.makedirs(DATA_DIR, exist_ok=True)
@@ -231,9 +243,19 @@ def main():
         write_csv(places, hits, ads, bool(raw.get("ads_checked")))
         return
 
-    places = scrape_places(a.per_search)
+    if a.source == "outscraper":
+        import outscraper
+        places = outscraper.scrape_places(SUBURBS, CATEGORIES, a.per_search)
+    else:
+        places = scrape_places(a.per_search)
     json.dump({"places": places}, open(raw_path, "w"))
-    hits = {} if a.skip_reviews else scrape_reviews(places, a.reviews_per_place)
+    if a.skip_reviews:
+        hits = {}
+    elif a.source == "outscraper":
+        targets = [p for p in places if p.get("placeId") and needs_review_check(p)]
+        hits = outscraper.scrape_reviews(targets, a.reviews_per_place, complaint_matches)
+    else:
+        hits = scrape_reviews(places, a.reviews_per_place)
     ads = {} if a.skip_ads else scrape_ads(places, a.ads_per_business)
     json.dump({"places": places, "hits": hits, "ads": ads, "ads_checked": not a.skip_ads},
               open(raw_path, "w"))
