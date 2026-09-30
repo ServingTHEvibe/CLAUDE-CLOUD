@@ -696,3 +696,32 @@ textarea.input { padding: 12px 16px; min-height: 84px; resize: vertical; }
 }
 .custom .btn--ink { --bg: linear-gradient(180deg, var(--gold-hi), var(--gold)); --fg: var(--ink); }
 @media (min-width: 900px) { .pmenu__grid { grid-template-columns: repeat(2, 1fr); max-width: 1100px; } }
+
+/* ---------- Inertia ring gallery ---------- */
+.gallery { background: var(--ink); padding: clamp(100px, 14vh, 160px) 0 clamp(80px, 12vh, 140px); overflow: hidden; }
+.gallery__head { margin-bottom: clamp(20px, 4vh, 40px); }
+.gallery .display em { color: var(--blue); }
+.ring-stage {
+  --tilt: -8deg; --r: 600px; position: relative; height: clamp(420px, 62vh, 620px);
+  perspective: 1100px; perspective-origin: 50% 35%; cursor: grab; touch-action: pan-y;
+  user-select: none; -webkit-user-select: none; outline: none;
+}
+.ring-stage.is-grabbing { cursor: grabbing; }
+.ring-stage:focus-visible { box-shadow: inset 0 0 0 2px var(--gold); border-radius: 12px; }
+.ring { position: absolute; left: 50%; top: 50%; width: 0; height: 0; transform-style: preserve-3d; }
+.ring__item {
+  --tag: var(--gold); position: absolute; margin: 0;
+  width: clamp(170px, 20vw, 250px); aspect-ratio: 600 / 780;
+  left: calc(clamp(170px, 20vw, 250px) / -2); top: calc(clamp(170px, 20vw, 250px) * -0.65);
+  border: 2px solid var(--tag); border-radius: 6px 16px 8px 14px; overflow: hidden;
+  background: var(--ink-2); backface-visibility: hidden;
+  box-shadow: 0 0 24px -6px var(--tag), 0 30px 60px -20px rgba(0,0,0,.8);
+}
+.ring__item:nth-child(4n+2) { --tag: var(--pink); }
+.ring__item:nth-child(4n+3) { --tag: var(--blue); }
+.ring__item:nth-child(4n+4) { --tag: var(--lime); }
+.ring__item img { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+.gallery__hint { text-align: center; margin: 10px 0 0; color: var(--muted-on-dark); font: italic 400 20px/1.3 var(--f-serif); }
+.ring-stage { --tilt: -14deg; perspective: 1400px; perspective-origin: 50% 20%; }
+.ring__item { backface-visibility: visible; }
+@media (max-width: 700px) { .ring-stage { perspective: 900px; height: 440px; } .ring__item { width: 150px; left: -75px; top: -98px; } }
