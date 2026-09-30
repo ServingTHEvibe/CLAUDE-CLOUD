@@ -26,7 +26,7 @@ const STEPS = [
   {
     key: 'orderType', label: 'Order', kind: 'choice',
     ask: () => "Hey, welcome in. What are we making today?",
-    options: ['Birthday cake', 'Cookies', 'Treat box', 'Something custom'],
+    options: ['Birthday cake', 'Cookies', 'Treat box'],
   },
   {
     key: 'products', label: 'Details', kind: 'text', optional: true, skip: 'Not sure yet',
@@ -34,7 +34,6 @@ const STEPS = [
       'Birthday cake': 'Love that. Any flavor or cake details in mind?',
       Cookies: 'Good call. Which cookies are you craving?',
       'Treat box': 'A little of everything. What should go in the box?',
-      'Something custom': "Let's hear it. What are you picturing?",
     }[a.orderType] || 'Tell me a little more.'),
     placeholder: (a) => (a.orderType === 'Cookies' ? 'e.g. chocolate chip' : 'Flavors, style, anything'),
   },

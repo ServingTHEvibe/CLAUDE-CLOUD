@@ -297,11 +297,11 @@ function initMotion() {
 
     // Custom-order steps: rail fills, the step in focus comes forward.
     const steps = $('[data-steps]');
-    gsap.fromTo('[data-steps-rail]', { scaleY: 0 }, {
+    if (steps) gsap.fromTo('[data-steps-rail]', { scaleY: 0 }, {
       scaleY: 1, ease: 'none',
       scrollTrigger: { trigger: steps, start: 'top 65%', end: 'bottom 65%', scrub: true },
     });
-    $$('.step', steps).forEach((s) => ScrollTrigger.create({
+    if (steps) $$('.step', steps).forEach((s) => ScrollTrigger.create({
       trigger: s, start: 'top 68%', end: 'bottom 40%', toggleClass: 'is-active',
     }));
 
