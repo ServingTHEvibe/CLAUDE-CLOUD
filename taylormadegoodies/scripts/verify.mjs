@@ -15,7 +15,7 @@ const VIEWPORTS = [
   ['mobile-390', 390, 844], ['mobile-393', 393, 852], ['mobile-430', 430, 932],
 ];
 const FILM_POINTS = [0, 0.225, 0.3, 0.32, 0.34, 0.43, 0.592, 0.776, 0.961];
-const SECTIONS = ['#goodies', '.feature--right', '.bleed', '#custom', '#story', '#faq', '.cta', '.footer'];
+const SECTIONS = ['#goodies', '.feature--right', '.bleed', '#story', '#faq', '.cta', '.footer'];
 const only = process.env.ONLY ? process.env.ONLY.split(',') : null;
 
 const browser = await chromium.launch({ executablePath, args: ['--disable-gpu-sandbox'] });
