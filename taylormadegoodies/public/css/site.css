@@ -597,3 +597,102 @@ textarea.input { padding: 12px 16px; min-height: 84px; resize: vertical; }
 .pmenu__cat li b { font: 400 22px/1 var(--f-display); letter-spacing: .04em; color: var(--gold); white-space: nowrap; }
 .pmenu__note { margin: 16px 0 0; color: var(--muted-on-dark); font: italic 400 18px/1.3 var(--f-serif); }
 .pmenu__cta { text-align: center; margin-top: clamp(36px, 6vh, 56px); padding: 0 var(--gutter); }
+
+/* =========================================================================
+   Street palette + graffiti cards (less brown: charcoal, cream-white, neon)
+   ========================================================================= */
+:root {
+  --ink: #0b0b0d; --ink-2: #121216; --choc: #17171c; --choc-2: #202027;
+  --cream: #f6f3ee; --cream-2: #ebe7e0; --paper: #f6f3ee;
+  --caramel: #ff3d8b; --blue: #3ad6ff; --lime: #c8ff3a;
+  --muted-on-dark: rgba(246,243,238,.72); --line-dark: rgba(246,243,238,.13);
+  --glass: rgba(14,14,18,.82);
+}
+.bleed__media::after { background: linear-gradient(180deg, rgba(11,11,13,.1) 30%, rgba(11,11,13,.88)); }
+.cta__media::after { background: radial-gradient(70% 60% at 50% 50%, rgba(11,11,13,.35), var(--ink) 92%); }
+.concierge-launch { background: rgba(14,14,18,.78); }
+
+/* Street sections: dark wall texture instead of beige */
+.custom, .faq, .pmenu, .story {
+  background: var(--ink-2) url("/img/graffiti-wall.webp") center / 640px repeat;
+  color: var(--cream); position: relative; isolation: isolate;
+}
+.custom::before, .faq::before, .pmenu::before, .story::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background: linear-gradient(180deg, rgba(11,11,13,.92), rgba(11,11,13,.8) 50%, rgba(11,11,13,.94));
+}
+.custom__lede, .step p, .faq details p { color: var(--muted-on-dark); }
+.custom .display em, .faq .display em { color: var(--pink); }
+.steps__rail { background: var(--line-dark); }
+.steps__rail i { background: linear-gradient(var(--pink), var(--gold)); }
+
+/* ---------- Graffiti card ---------- */
+.gcard, .pmenu__cat, .step, .faq details {
+  --tag: var(--gold);
+  position: relative;
+  background:
+    linear-gradient(160deg, rgba(20,20,26,.92), rgba(12,12,16,.96)),
+    url("/img/graffiti-wall.webp") center / 420px;
+  border: 2px solid var(--tag);
+  border-radius: 4px 14px 6px 12px;
+  box-shadow: 0 0 0 1px rgba(0,0,0,.6), 0 0 22px -6px var(--tag), 6px 8px 0 0 rgba(0,0,0,.55);
+  transform: rotate(-.6deg);
+  transition: transform 300ms var(--ease), box-shadow 300ms var(--ease);
+}
+.gcard:hover, .pmenu__cat:hover, .step:hover, .faq details:hover {
+  transform: rotate(0deg) translateY(-3px);
+  box-shadow: 0 0 0 1px rgba(0,0,0,.6), 0 0 34px -4px var(--tag), 8px 12px 0 0 rgba(0,0,0,.55);
+}
+.pmenu__cat:nth-child(4n+2), .step:nth-child(4n+2), .faq details:nth-child(4n+2) { --tag: var(--pink); transform: rotate(.7deg); }
+.pmenu__cat:nth-child(4n+3), .step:nth-child(4n+3), .faq details:nth-child(4n+3) { --tag: var(--blue); transform: rotate(-.3deg); }
+.pmenu__cat:nth-child(4n+4), .step:nth-child(4n+4), .faq details:nth-child(4n+4) { --tag: var(--lime); transform: rotate(.45deg); }
+
+/* spray drips hanging off the top edge */
+.pmenu__cat::before, .step::before, .faq details::before {
+  content: ""; position: absolute; left: 14%; top: -2px; width: 58%; height: 26px; pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 100%, var(--tag) 3px, transparent 3.5px) 0 16px / 12% 10px no-repeat,
+    linear-gradient(var(--tag), var(--tag)) 5% 0 / 3px 18px no-repeat,
+    linear-gradient(var(--tag), var(--tag)) 38% 0 / 3px 10px no-repeat,
+    linear-gradient(var(--tag), var(--tag)) 71% 0 / 3px 22px no-repeat,
+    linear-gradient(var(--tag), var(--tag)) 93% 0 / 3px 8px no-repeat;
+  border-radius: 0 0 3px 3px; opacity: .9;
+}
+/* strip of tape */
+.pmenu__cat::after, .step::after {
+  content: ""; position: absolute; right: 18px; top: -12px; width: 64px; height: 22px;
+  background: rgba(246,243,238,.82); transform: rotate(6deg);
+  box-shadow: 0 2px 6px rgba(0,0,0,.4);
+  clip-path: polygon(3% 0, 97% 6%, 100% 94%, 0 100%);
+}
+
+/* Menu cards */
+.pmenu__grid { gap: 28px; }
+.pmenu__cat { padding: clamp(26px, 3vw, 38px); }
+.pmenu__cat h3 {
+  color: var(--tag); border-bottom: 2px dashed color-mix(in srgb, var(--tag) 45%, transparent);
+  text-shadow: 0 0 18px color-mix(in srgb, var(--tag) 55%, transparent), 3px 3px 0 #000;
+}
+.pmenu__cat li b {
+  color: var(--ink); background: var(--tag); padding: 7px 10px 5px; border-radius: 3px;
+  transform: rotate(-2deg); box-shadow: 3px 3px 0 #000; font-size: 20px;
+}
+
+/* Steps as cards */
+.steps { padding-left: 44px; display: grid; gap: 34px; }
+.step { opacity: .55; min-height: 0; border-bottom: 2px solid var(--tag); padding: clamp(26px, 4vh, 40px) clamp(22px, 3vw, 34px); }
+.step.is-active { opacity: 1; }
+.step__n { color: var(--tag); text-shadow: 3px 3px 0 #000; }
+.step h3 { color: var(--cream); }
+
+/* FAQ as cards */
+.faq__list { display: grid; gap: 22px; }
+.faq details { border-bottom: 2px solid var(--tag); padding: 0 22px; }
+.faq summary { color: var(--cream); }
+.faq summary::after { color: var(--tag); }
+
+@media (prefers-reduced-motion: reduce) {
+  .pmenu__cat, .step, .faq details { transition: none; }
+}
+.custom .btn--ink { --bg: linear-gradient(180deg, var(--gold-hi), var(--gold)); --fg: var(--ink); }
+@media (min-width: 900px) { .pmenu__grid { grid-template-columns: repeat(2, 1fr); max-width: 1100px; } }
