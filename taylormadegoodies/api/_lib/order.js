@@ -7,7 +7,7 @@ export const LIMITS = {
   imageBytes: 1_500_000, // per image, decoded
 };
 
-const ORDER_TYPES = ['Birthday cake', 'Cookies', 'Treat box', 'Something custom'];
+const ORDER_TYPES = ['Birthday cake', 'Cookies', 'Treat box'];
 const FULFILLMENT = ['pickup', 'delivery'];
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const DATA_URL = /^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/;
