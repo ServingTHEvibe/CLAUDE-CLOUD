@@ -3,13 +3,16 @@
 //
 //   Email (Resend)   RESEND_API_KEY, ORDER_EMAIL, [ORDER_FROM_EMAIL]
 //   SMS (Twilio)     TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM_NUMBER, ORDER_SMS_NUMBER
+//   Dashboard        KV_REST_API_URL, KV_REST_API_TOKEN  (Upstash Redis; owner views at /admin)
 //   Webhook          ORDER_WEBHOOK_URL, [ORDER_WEBHOOK_SECRET]  (Zapier, Make, Slack, Airtable, a POS…)
 import { orderText, orderHtml } from './order.js';
+import { storeConfigured, saveOrder } from './store.js';
 
 const env = (k) => (process.env[k] || '').trim();
 
 export function configuredChannels() {
   const list = [];
+  if (storeConfigured()) list.push('dashboard');
   if (env('RESEND_API_KEY') && env('ORDER_EMAIL')) list.push('email');
   if (env('TWILIO_ACCOUNT_SID') && env('TWILIO_AUTH_TOKEN') && env('TWILIO_FROM_NUMBER') && env('ORDER_SMS_NUMBER')) list.push('sms');
   if (env('ORDER_WEBHOOK_URL')) list.push('webhook');
@@ -101,7 +104,7 @@ async function sendWebhook(lead, id, images) {
 /** Deliver to every configured channel. Resolves with per-channel results. */
 export async function deliver(lead, id, images) {
   const channels = configuredChannels();
-  const run = { email: () => sendEmail(lead, id, images), sms: () => sendSms(lead, id), webhook: () => sendWebhook(lead, id, images) };
+  const run = { dashboard: () => saveOrder(lead, id, images), email: () => sendEmail(lead, id, images), sms: () => sendSms(lead, id), webhook: () => sendWebhook(lead, id, images) };
   const settled = await Promise.allSettled(channels.map((c) => run[c]()));
   const results = channels.map((c, i) => ({ channel: c, ok: settled[i].status === 'fulfilled', error: settled[i].reason && String(settled[i].reason.message || settled[i].reason) }));
   if (results.some((r) => r.ok)) await sendConfirmation(lead, id).catch((e) => console.error('[order] confirmation failed', e.message));
