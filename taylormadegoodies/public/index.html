@@ -57,6 +57,7 @@
       <nav class="nav__links" aria-label="Primary">
         <a href="#goodies">Goodies</a>
         <a href="#prices">Menu</a>
+        <a href="#gallery">Gallery</a>
         <a href="#custom">Custom Orders</a>
         <a href="#story">Our Story</a>
         <a href="#faq">FAQ</a>
@@ -223,6 +224,29 @@
       <div class="pmenu__cta"><button class="btn btn--gold btn--lg" type="button" data-open-concierge>Place your order</button></div>
     </section>
 
+    <!-- ============ GALLERY ============ -->
+    <section class="gallery" id="gallery" aria-labelledby="gallery-title">
+      <header class="section-head gallery__head">
+        <p class="kicker">Gallery</p>
+        <h2 id="gallery-title" class="display display--lg">Fresh out <em>the oven.</em></h2>
+      </header>
+      <div class="ring-stage" data-ring tabindex="0" role="region" aria-label="Photo gallery. Drag or use arrow keys to spin.">
+        <div class="ring">
+          <figure class="ring__item"><img src="/img/gallery/g1.webp" alt="Strawberry glazed bundt cake under a cake dome" loading="lazy" draggable="false" width="600" height="780"></figure>
+          <figure class="ring__item"><img src="/img/gallery/g3.webp" alt="A woman taking a bite of strawberry layer cake" loading="lazy" draggable="false" width="600" height="780"></figure>
+          <figure class="ring__item"><img src="/img/gallery/g2.webp" alt="Cupcakes piled with cream cheese frosting" loading="lazy" draggable="false" width="600" height="780"></figure>
+          <figure class="ring__item"><img src="/img/gallery/g4.webp" alt="A tray of fruity cereal cookies" loading="lazy" draggable="false" width="600" height="780"></figure>
+          <figure class="ring__item"><img src="/img/gallery/../cookie.webp" alt="A golden chocolate chip cookie" loading="lazy" draggable="false" width="600" height="780"></figure>
+          <figure class="ring__item"><img src="/img/gallery/g6.webp" alt="A woman biting into a red velvet cupcake" loading="lazy" draggable="false" width="600" height="780"></figure>
+          <figure class="ring__item"><img src="/img/gallery/g5.webp" alt="Rice crispy treats packed to go" loading="lazy" draggable="false" width="600" height="780"></figure>
+          <figure class="ring__item"><img src="/img/gallery/../still-158.webp" alt="A slice of vanilla layer cake with a strawberry" loading="lazy" draggable="false" width="600" height="780"></figure>
+          <figure class="ring__item"><img src="/img/gallery/g7.webp" alt="Cookies boxed up for an order" loading="lazy" draggable="false" width="600" height="780"></figure>
+          <figure class="ring__item"><img src="/img/gallery/../still-190.webp" alt="A frosted cake slice crowned with strawberries" loading="lazy" draggable="false" width="600" height="780"></figure>
+        </div>
+      </div>
+      <p class="gallery__hint">Drag to spin. Let go and watch it roll.</p>
+    </section>
+
     <!-- ============ 04 — CUSTOM ORDERS ============ -->
     <section class="custom" id="custom" aria-labelledby="custom-title">
       <div class="custom__grid">
@@ -354,5 +378,6 @@
   <script src="/vendor/ScrollTrigger.min.js" defer></script>
   <script src="/vendor/lenis.min.js" defer></script>
   <script type="module" src="/js/main.js"></script>
+  <script src="/js/gallery.js" defer></script>
 </body>
 </html>
