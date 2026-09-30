@@ -56,6 +56,7 @@
       </a>
       <nav class="nav__links" aria-label="Primary">
         <a href="#goodies">Goodies</a>
+        <a href="#prices">Menu</a>
         <a href="#custom">Custom Orders</a>
         <a href="#story">Our Story</a>
         <a href="#faq">FAQ</a>
@@ -70,9 +71,10 @@
   <div class="menu" id="menu" data-menu hidden>
     <nav aria-label="Mobile">
       <a href="#goodies"><small>01</small>Goodies</a>
-      <a href="#custom"><small>02</small>Custom Orders</a>
-      <a href="#story"><small>03</small>Our Story</a>
-      <a href="#faq"><small>04</small>FAQ</a>
+      <a href="#prices"><small>02</small>Menu</a>
+      <a href="#custom"><small>03</small>Custom Orders</a>
+      <a href="#story"><small>04</small>Our Story</a>
+      <a href="#faq"><small>05</small>FAQ</a>
     </nav>
     <button class="btn btn--gold btn--xl" type="button" data-open-concierge>Start an order</button>
   </div>
@@ -187,6 +189,40 @@
       </article>
     </section>
 
+    <!-- ============ MENU ============ -->
+    <section class="pmenu" id="prices" aria-labelledby="menu-title">
+      <header class="section-head pmenu__head">
+        <p class="kicker">The Menu</p>
+        <h2 id="menu-title" class="display display--lg">Goodies <em>menu.</em></h2>
+      </header>
+      <div class="pmenu__grid">
+        <article class="pmenu__cat">
+          <h3>Pound Cakes</h3>
+          <ul>
+            <li><span>Sour Cream · 7Up · Lemon · Strawberry</span><b>$50</b></li>
+            <li><span>Rude Boi Pound Cake <small>(Jamaican rum)</small></span><b>$60</b></li>
+          </ul>
+          <p class="pmenu__note">Slices: small $3 · large $6</p>
+        </article>
+        <article class="pmenu__cat">
+          <h3>Sheet / 2-Layer Cakes</h3>
+          <ul><li><span>Carrot · Key Lime · Strawberry · Red Velvet</span><b>$40</b></li></ul>
+        </article>
+        <article class="pmenu__cat">
+          <h3>Mini Cakes</h3>
+          <ul><li><span>Same flavors as sheet cakes</span><b>$8</b></li></ul>
+        </article>
+        <article class="pmenu__cat">
+          <h3>Cookies</h3>
+          <ul>
+            <li><span>Batch cookies <small>(assorted)</small></span><b>from $15</b></li>
+            <li><span>Logo / custom cookies</span><b>Custom</b></li>
+          </ul>
+        </article>
+      </div>
+      <div class="pmenu__cta"><button class="btn btn--gold btn--lg" type="button" data-open-concierge>Place your order</button></div>
+    </section>
+
     <!-- ============ 04 — CUSTOM ORDERS ============ -->
     <section class="custom" id="custom" aria-labelledby="custom-title">
       <div class="custom__grid">
@@ -275,6 +311,7 @@
       </a>
       <nav class="footer__nav" aria-label="Footer">
         <a href="#goodies">Goodies</a>
+        <a href="#prices">Menu</a>
         <a href="#custom">Custom Orders</a>
         <a href="#story">Our Story</a>
         <a href="#faq">FAQ</a>
