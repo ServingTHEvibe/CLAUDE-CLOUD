@@ -30,8 +30,8 @@ function makeMaterials() {
   });
   M.trim = new THREE.MeshPhysicalMaterial({ color: 0xd4d6d8, roughness: 0.3, metalness: 0.35, clearcoat: 0.8 });
   M.dark = new THREE.MeshStandardMaterial({ color: 0x1c1f22, roughness: 0.42, metalness: 0.65, envMapIntensity: 0.55, side: THREE.DoubleSide });
-  M.gear = new THREE.MeshStandardMaterial({ color: 0x4d5257, roughness: 0.3, metalness: 0.85, envMapIntensity: 1.0 });
-  M.gearHi = new THREE.MeshStandardMaterial({ color: 0x8d9398, roughness: 0.24, metalness: 0.9, envMapIntensity: 1.05 });
+  M.gear = new THREE.MeshStandardMaterial({ color: 0x686e74, roughness: 0.28, metalness: 0.9, envMapIntensity: 1.1 });
+  M.gearHi = new THREE.MeshStandardMaterial({ color: 0xa9afb4, roughness: 0.22, metalness: 0.95, envMapIntensity: 1.15 });
   M.steel = new THREE.MeshStandardMaterial({ color: 0xa4a9ad, roughness: 0.22, metalness: 1, envMapIntensity: 0.85 });
   M.rubber = new THREE.MeshStandardMaterial({ color: 0x101113, roughness: 0.6, metalness: 0.1, envMapIntensity: 0.5 });
   M.green = new THREE.MeshPhysicalMaterial({
@@ -471,9 +471,9 @@ export function buildShark() {
   // shoulder: upper, middle and lower rows, each cut differently
   rowS([-0.03, 0.07, 0.15], 0.55, 1.2, { bulge: 0.05 });
   sym(0.2, 0.25, 0.55, 1.0, {});
-  rowS([-0.03, 0.04, 0.13, 0.2], 1.2, 1.75, { bulge: 0.04 });
+  rowS([-0.03, 0.03, 0.08, 0.13, 0.2], 1.2, 1.75, { bulge: 0.04 });
   sym(-0.03, 0.13, 1.75, 1.95, { bulge: 0.02, rv: false }); // the lip the upper teeth hang from
-  rowS([0.13, 0.2, 0.25], 1.75, 2.3, { bulge: 0.03 });
+  sym(0.13, 0.17, 1.75, 2.3, { bulge: 0.03 });
   // ribs wrapping the flank, and a few cover plates inside the bays
   sym(0.326, 0.355, 0.55, 2.3, { gap: 0.02, bulge: 0.02 });
   sym(0.458, 0.487, 0.55, 2.3, { gap: 0.02, bulge: 0.02 });
@@ -483,6 +483,7 @@ export function buildShark() {
   sym(0.2, 0.25, 1.85, 2.3, {});
   sym(0.2, 0.262, 1.2, 1.85, { bulge: 0.04 });
   const wins = [
+    [0.17, 0.25, 1.78, 2.28],
     [0.15, 0.2, 0.6, 1.2],
     [0.25, 0.326, 0.6, 1.2], [0.262, 0.326, 1.2, 1.85],
     [0.355, 0.458, 0.6, 1.2], [0.355, 0.458, 1.2, 2.25],
@@ -677,8 +678,8 @@ export function buildShark() {
   };
   for (const side of [1, -1]) {
     // upper row hangs from the cheek panel edge (a = 1.93), lower row rises from the jaw edge
-    lipTeeth(body, side * 1.93, 0.985, side, 0, 9, -0.022, 0.125, 0);
-    lipTeeth(jaw, side * (Math.PI - JA), 0.985, -side, -hinge.y, 8, -0.018, 0.12, hinge.x);
+    lipTeeth(body, side * 1.93, 0.985, side, 0, 11, -0.026, 0.13, 0);
+    lipTeeth(jaw, side * (Math.PI - JA), 0.985, -side, -hinge.y, 10, -0.022, 0.125, hinge.x);
   }
   // front teeth across the chin
   for (let i = 0; i < 5; i++) {
@@ -688,7 +689,6 @@ export function buildShark() {
   for (const side of [1, -1]) {
     const hp = bodyPt(hingeS - 0.005, side * 2.0, 0.9);
     gear(hp, bodyNormal(hingeS, side * 2.0), 0.15, body, { th: 0.05 });
-    piston(hp.clone().add(V(0.05, 0.05, 0)), bodyPt(0.03, side * 2.05, 0.88), 0.028, body);
     // green gill marks (edge lines on the cheek)
     for (let q = 0; q < 3; q++) {
       const s = 0.15 + q * 0.016, a = side * 1.86;
@@ -709,9 +709,9 @@ export function buildShark() {
     f.userData.q0 = f.quaternion.clone();
     return f;
   };
-  addFin(DORSAL, { tip: 4, lead: [0, 4], rims: [[3, 5]], sparW: 0.16, scale: 0.8 }, bodyPt(0.37, 0, 0.97), V(1, 0, 0), V(-0.08, 1, 0.04), body, 'dorsal');
+  addFin(DORSAL, { tip: 4, lead: [0, 4], rims: [[3, 5]], sparW: 0.16, scale: 0.7 }, bodyPt(0.37, 0, 0.97), V(1, 0, 0), V(-0.08, 1, 0.04), body, 'dorsal');
   addFin(PECT, { tip: 4, lead: [0, 4], rims: [[3, 5]], sparW: 0.15, scale: 0.78 }, bodyPt(0.205, 1.98, 0.95), V(1, 0.05, 0.1), V(0.55, -0.7, 0.45), body, 'pectR');
-  addFin(PECT, { tip: 4, lead: [0, 4], rims: [[3, 5]], sparW: 0.14, scale: 0.68 }, bodyPt(0.215, -1.95, 0.95), V(1, 0.1, -0.16), V(-0.45, -0.62, -0.64), body, 'pectL');
+  addFin(PECT, { tip: 4, lead: [0, 4], rims: [[3, 5]], sparW: 0.14, scale: 0.68 }, bodyPt(0.215, -1.95, 0.95), V(1, 0.1, -0.16), V(-0.5, -0.5, -0.7), body, 'pectL');
   addFin(SMALL, { tip: 2, lead: [0, 2], rims: [[2, 3]], scale: 0.95, sparW: 0.08 }, bodyPt(0.55, Math.PI - 0.55, 0.95), V(1, 0, 0), V(-0.35, -0.8, 0.45), body, 'pelvR');
   addFin(SMALL, { tip: 2, lead: [0, 2], rims: [[2, 3]], scale: 0.85, sparW: 0.08 }, bodyPt(0.56, -(Math.PI - 0.55), 0.95), V(1, 0, 0), V(-0.25, -0.85, -0.5), body, 'pelvL');
 
@@ -763,7 +763,7 @@ export function buildShark() {
   mesh(new THREE.SphereGeometry(Math.min(pr.ry, pr.rz) * 1.05, 20, 14), M.dark, cg).position.y = pr.cy;
   const ring = mesh(new THREE.TorusGeometry(Math.min(pr.ry, pr.rz) * 0.9, 0.016, 8, 32), M.green, cg);
   ring.position.set(0.06, pr.cy, 0); ring.rotation.y = Math.PI / 2;
-  const cf = makeFin(CAUDAL, { tip: 4, lead: [0, 4], rims: [[4, 5], [10, 11]], sparW: 0.22, scale: 0.8 });
+  const cf = makeFin(CAUDAL, { tip: 4, lead: [0, 4], rims: [[4, 5], [10, 11]], sparW: 0.22, scale: 0.68 });
   cf.position.set(0.05, pr.cy, 0);
   cf.quaternion.copy(finBasis(V(1, 0, 0.04), V(0, 1, 0)));
   cg.add(cf);
@@ -790,5 +790,5 @@ export function pose(parts, t) {
   tilt(f.pectR, V(1, 0, 0), 0.08, 0);
   tilt(f.pectL, V(1, 0, 0), 0.07, 1.4);
   tilt(f.dorsal, V(0, 1, 0), 0.03, 0.4);
-  parts.jaw.rotation.z = 0.24 + 0.03 * Math.sin(w * 0.5 * t);
+  parts.jaw.rotation.z = 0.32 + 0.03 * Math.sin(w * 0.5 * t);
 }

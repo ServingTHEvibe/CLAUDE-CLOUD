@@ -82,3 +82,27 @@ lands in frame.
 | 14 | no | partial | reads as a machine now, but in hard black-and-white bands where the reference is grey and silver |
 
 Parts: 160 big, ~290 small discrete + ~680 kitbash micro-parts.
+
+## Round 4 grades (round4.png, luma < 80)
+
+What changed: gears lightened to grey/silver (0x686e74, 0xa9afb4). Dorsal 0.7, tail 0.68.
+Near pectoral droops less. Jaw opens 0.32 rad with 11 + 10 teeth per side. Hinge pistons
+removed from the mouth corners. Cheek split into a plate and a window. Shoulder middle row
+cut into smaller plates.
+
+| # | R3 | R4 | Against the picture |
+|---|---|---|---|
+| 1 | partial | partial | heavy body; h/L 0.540 vs 0.516, 0.024 over |
+| 2 | yes | yes | |
+| 3 | partial | partial | far eye still a sliver |
+| 4 | yes | yes | |
+| 5 | partial | partial | both rows of teeth read and the grin is wider; the far corner is still a dark knot |
+| 6 | partial | partial | shoulder shows machine; the new cheek window sits behind the eye and pectoral from this camera |
+| 7 | yes | yes | gears now grey and silver |
+| 8 | yes | yes | |
+| 9 | partial | yes | dorsal, tail and pectorals in proportion |
+| 10 | yes | yes | |
+| 11 | yes | yes | 0.42% vs 0.35% |
+| 12 | partial | partial | shadow in frame, faint, at the bottom edge |
+| 13 | yes (1.03) | yes (1.05) | 0.085 vs 0.081 |
+| 14 | partial | partial | greyer mid-body; the white ribs still make hard vertical bands and the hammer is mostly white |
