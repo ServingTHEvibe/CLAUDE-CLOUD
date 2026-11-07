@@ -14,7 +14,7 @@ a scent name, a colour).
 
 ## Reply: "How much for just one?"
 
-> Totally fair! A single video is $175. The monthly plan works out to $125 each, and you
+> Totally fair! A single video is $200. The monthly plan works out to $125 each, and you
 > get a fresh one every week without having to ask — but happy to start with one and
 > go from there.
 
