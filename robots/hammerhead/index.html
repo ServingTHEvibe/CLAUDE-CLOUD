@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Robot Hammerhead</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #f1f1ef; overflow: hidden; }
+  canvas { display: block; }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "../node_modules/three/build/three.module.js",
+  "three/addons/": "../node_modules/three/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<script type="module">
+import * as THREE from 'three';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { buildShark, pose, stats } from './shark.js';
+
+const q = new URLSearchParams(location.search);
+const W = +q.get('w') || innerWidth, H = +q.get('h') || innerHeight;
+const still = q.has('still');
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(still ? 1 : Math.min(devicePixelRatio, 2));
+renderer.setSize(W, H);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.NeutralToneMapping;
+renderer.toneMappingExposure = 1.0;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.VSMShadowMap;
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xf1f1ef);
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+scene.environmentIntensity = 0.8;
+
+scene.add(new THREE.HemisphereLight(0xffffff, 0xcfcfca, 0.35));
+const key = new THREE.DirectionalLight(0xffffff, 2.6);
+key.position.set(1, 16, -2);
+key.castShadow = true;
+key.shadow.mapSize.set(512, 512);
+Object.assign(key.shadow.camera, { left: -10, right: 10, top: 10, bottom: -10, near: 1, far: 40 });
+key.shadow.radius = 10;
+key.shadow.blurSamples = 24;
+key.shadow.bias = -0.0005;
+scene.add(key);
+const fill = new THREE.DirectionalLight(0xffffff, 0.6);
+fill.position.set(8, 3, -10);
+scene.add(fill);
+
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(120, 120), new THREE.ShadowMaterial({ opacity: 0.17 }));
+floor.rotation.x = -Math.PI / 2;
+floor.position.y = -2.7;
+floor.receiveShadow = true;
+scene.add(floor);
+
+const parts = buildShark();
+scene.add(parts.root);
+window.__stats = { ...stats };
+
+// Hero still: front 3/4 from the shark's left, slightly above (matches the reference).
+const VIEWS = {
+  hero: { pos: [8.6, 2.3, -14.6], target: [0.2, -0.1, 0], fov: 32 },
+  side: { pos: [0, 1, -24], target: [0, 0.3, 0], fov: 30 },
+};
+const view = VIEWS[q.get('view') || 'hero'];
+const camera = new THREE.PerspectiveCamera(view.fov, W / H, 0.1, 200);
+camera.position.fromArray(view.pos);
+const target = new THREE.Vector3().fromArray(view.target);
+camera.lookAt(target);
+
+const t0 = +q.get('t') || 0.4;
+// Crop the perspective view so the object's projected box lands on a target rect
+// (fractions of the frame: x0, y0, x1, y1). Keeps the camera position (and so the
+// perspective) while matching the reference's framing.
+function projectedBox() {
+  const v = new THREE.Vector3(), b = [1e9, 1e9, -1e9, -1e9];
+  parts.root.updateMatrixWorld(true);
+  parts.root.traverse((o) => {
+    if (!o.isMesh) return;
+    const pa = o.geometry.attributes.position, step = Math.max(1, Math.floor(pa.count / 300));
+    for (let i = 0; i < pa.count; i += step) {
+      v.fromBufferAttribute(pa, i).applyMatrix4(o.matrixWorld).project(camera);
+      const x = (v.x + 1) / 2, y = (1 - v.y) / 2;
+      b[0] = Math.min(b[0], x); b[1] = Math.min(b[1], y); b[2] = Math.max(b[2], x); b[3] = Math.max(b[3], y);
+    }
+  });
+  return b;
+}
+function fitTo(r) {
+  camera.clearViewOffset();
+  camera.updateMatrixWorld(true);
+  const b = projectedBox();
+  const z = Math.min((r[2] - r[0]) / (b[2] - b[0]), (r[3] - r[1]) / (b[3] - b[1]));
+  const offX = ((b[0] + b[2]) / 2) * W * z - ((r[0] + r[2]) / 2) * W;
+  const offY = ((b[1] + b[3]) / 2) * H * z - ((r[1] + r[3]) / 2) * H;
+  camera.setViewOffset(W * z, H * z, offX, offY, W, H);
+}
+const FIT = q.get('fit') === '0' ? null : [17 / 1752, 5 / 897, 1735 / 1752, 892 / 897];
+if (still) {
+  pose(parts, t0);
+  if (FIT) fitTo(FIT);
+  renderer.render(scene, camera);
+  renderer.render(scene, camera);
+  window.__ready = true;
+} else {
+  const controls = new OrbitControls(camera, renderer.domElement);
+  controls.target.copy(target);
+  const clock = new THREE.Clock();
+  addEventListener('resize', () => {
+    renderer.setSize(innerWidth, innerHeight);
+    camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
+  });
+  renderer.setAnimationLoop(() => {
+    pose(parts, t0 + clock.getElapsedTime());
+    controls.update();
+    renderer.render(scene, camera);
+  });
+}
+</script>
+</body>
+</html>
