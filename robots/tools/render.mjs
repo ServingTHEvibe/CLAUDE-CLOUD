@@ -1,4 +1,4 @@
-// Headless still: node tools/render.mjs hammerhead out.png "view=hero&w=1752&h=897"
+// Headless still: node tools/render.mjs hammerhead out.png "view=hero&w=1600&h=900"
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -8,7 +8,7 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const { chromium } = require('playwright');
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const [model = 'hammerhead', out = 'still.png', query = 'view=hero&w=1752&h=897'] = process.argv.slice(2);
+const [model = 'hammerhead', out = 'still.png', query = 'view=hero&w=1600&h=900'] = process.argv.slice(2);
 const types = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.png': 'image/png', '.json': 'application/json' };
 
 const server = http.createServer((req, res) => {
@@ -20,7 +20,7 @@ const server = http.createServer((req, res) => {
 await new Promise((r) => server.listen(0, r));
 const port = server.address().port;
 const q = new URLSearchParams(query);
-const w = +q.get('w') || 1752, h = +q.get('h') || 897;
+const w = +q.get('w') || 1600, h = +q.get('h') || 900;
 
 const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
 const page = await browser.newPage({ viewport: { width: w, height: h }, deviceScaleFactor: 1 });

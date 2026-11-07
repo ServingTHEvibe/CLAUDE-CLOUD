@@ -1,13 +1,13 @@
 """Measure an object on a near-white studio background.
 usage: python3 measure.py image.png [--json]
-Reports bbox, object mask coverage, dark-pixel share inside the object's frame,
+Dark = luma under 80 (rules file). Reports bbox, object mask coverage, dark-pixel share inside the object's frame,
 and the vertical extent of the mask in 10 slices along the length."""
 import sys, json
 import numpy as np
 from PIL import Image
 from scipy import ndimage as ndi
 
-def measure(path):
+def measure(path, dark=80):
     im = np.asarray(Image.open(path).convert('RGB')).astype(np.float32)
     lum = im @ np.array([0.299, 0.587, 0.114])
     bg = np.median(np.concatenate([lum[:8].ravel(), lum[:, :8].ravel(), lum[:, -8:].ravel()]))
@@ -24,7 +24,7 @@ def measure(path):
     L, H = x1 - x0, y1 - y0
     frame = lum[y0:y1 + 1, x0:x1 + 1]
     fmask = mask[y0:y1 + 1, x0:x1 + 1]
-    dark = frame < 90
+    dark = frame < dark
     green = ((im[..., 1] - np.maximum(im[..., 0], im[..., 2])) > 35)[y0:y1 + 1, x0:x1 + 1]
     slices = []
     for i in range(10):
