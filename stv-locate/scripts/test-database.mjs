@@ -1,0 +1,15 @@
+import {DatabaseSync} from 'node:sqlite';
+import {readFileSync,readdirSync} from 'node:fs';
+import assert from 'node:assert/strict';
+const db=new DatabaseSync(':memory:');
+for(const file of readdirSync('drizzle').filter(f=>f.endsWith('.sql')))db.exec(readFileSync('drizzle/'+file,'utf8'));
+db.prepare('INSERT INTO assets VALUES (?,?,?,?)').run('asset-a','owner-a','{}','2026-10-07');
+assert.equal(db.prepare('SELECT * FROM assets WHERE owner=?').all('owner-b').length,0);
+assert.equal(db.prepare('SELECT * FROM assets WHERE owner=?').all('owner-a').length,1);
+db.prepare('DELETE FROM assets WHERE id=? AND owner=?').run('asset-a','owner-b');
+assert.equal(db.prepare('SELECT * FROM assets').all().length,1);
+const gate=db.prepare('INSERT INTO rate_limits (id,time) VALUES (?,?) ON CONFLICT(id) DO UPDATE SET time=excluded.time WHERE time < ? RETURNING time');
+assert.equal(gate.all('geocode',10000,8500).length,1);
+assert.equal(gate.all('geocode',10500,9000).length,0);
+assert.equal(gate.all('geocode',12000,10500).length,1);
+db.close();console.log('PASS: migrations, owner-scoped lookup/deletion, global geocoding throttle');
