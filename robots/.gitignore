@@ -1,2 +1,3 @@
 node_modules/
 cutaway-out/
+__pycache__/
