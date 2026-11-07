@@ -1,52 +1,1278 @@
-'use client';
-import {useEffect,useState,useMemo} from 'react';
-import {MapPin, Search, Plus, ArrowUpRight, Box, Coffee, Droplets, Snowflake, ChevronRight, X, Navigation, Building2, DoorOpen, Car, Camera, Layers, Download, Upload, QrCode, Pencil, Check, Map, List, Loader2, CircleHelp, Link2, Trash2, Activity, LocateFixed} from 'lucide-react';
-import {searchAddress,useGoogleKey} from '../lib/google-maps';
-import {readApiResponse} from '../lib/api-response';
-import AssetMap from '../components/equipment-map';
-import InventoryPlanner from '../components/inventory-planner';
-import {newAsset,type Asset} from '../lib/asset';
-import {demoAssets} from '../lib/demo';
-import {download,exportAssets,importAssets} from '../lib/export';
-const categories=['All equipment','Vending','Coffee','Water','Refrigeration','Other'];
-const iconFor=(category:string,size=20)=>category==='Coffee'?<Coffee size={size}/>:category==='Water'?<Droplets size={size}/>:category==='Refrigeration'?<Snowflake size={size}/>:<Box size={size}/>;
-const imageUrl=(key:string)=>'/api/files?key='+encodeURIComponent(key);
-export default function AdvancedWorkspace(){
- const googleKey=useGoogleKey();
- const [planner,setPlanner]=useState(false);
- const [assets,setAssets]=useState<Asset[]>([]),[loading,setLoading]=useState(true),[demo,setDemo]=useState(false),[selected,setSelected]=useState(''),[query,setQuery]=useState(''),[category,setCategory]=useState('All equipment'),[status,setStatus]=useState('All statuses'),[tab,setTab]=useState('Guide'),[view,setView]=useState('map'),[notice,setNotice]=useState(''),[busy,setBusy]=useState(false),[draft,setDraft]=useState<Asset|null>(null),[picking,setPicking]=useState(false),[focus,setFocus]=useState<{lat:number,lng:number,zoom?:number,mapProvider?:'google'}|null>(null),[address,setAddress]=useState(''),[results,setResults]=useState<any[]>([]),[searching,setSearching]=useState(false),[info,setInfo]=useState(false),[qr,setQr]=useState(''),[activity,setActivity]=useState(''),[cloudError,setCloudError]=useState('');
- const shown=demo?demoAssets:assets;const filtered=useMemo(()=>shown.filter(a=>(category==='All equipment'||a.category===category)&&(status==='All statuses'||a.status===status)&&`${a.name} ${a.tag} ${a.site} ${a.address} ${a.serial} ${a.businessType||''} ${a.equipmentType||''}`.toLowerCase().includes(query.toLowerCase())),[shown,category,status,query]);const current=shown.find(a=>a.id===selected);
- async function load(){setLoading(true);try{const r=await fetch('/api/assets');const j:any=await readApiResponse(r);setAssets(j.assets);setCloudError('');const id=new URLSearchParams(location.search).get('asset');if(id){setSelected(id);const a=j.assets.find((a:Asset)=>a.id===id);if(a)setFocus(a);}}catch(e){setCloudError((e as Error).message||'Cloud records unavailable.');}finally{setLoading(false);}}
- useEffect(()=>{load();},[]);useEffect(()=>{if(!notice)return;const t=setTimeout(()=>setNotice(''),7000);return()=>clearTimeout(t);},[notice]);
- useEffect(()=>{if(!(draft&&!picking)&&!info&&!qr)return;const previous=document.activeElement as HTMLElement|null;const modal=document.querySelector<HTMLElement>('.modal');const targets=()=>Array.from(modal?.querySelectorAll<HTMLElement>('button:not(:disabled),a[href],input:not(:disabled),select,textarea,[tabindex="0"]')||[]).filter(el=>el.offsetParent!==null);targets()[0]?.focus();const key=(e:KeyboardEvent)=>{if(e.key==='Escape'&&!busy){setDraft(null);setInfo(false);setQr('');setResults([]);}if(e.key==='Tab'){const items=targets(),first=items[0],last=items.at(-1);if(e.shiftKey&&document.activeElement===first){e.preventDefault();last?.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first?.focus();}}};document.addEventListener('keydown',key);return()=>{document.removeEventListener('keydown',key);previous?.focus();};},[Boolean(draft&&!picking),info,Boolean(qr),busy]);
- function choose(id:string){setSelected(id);const a=shown.find(a=>a.id===id);if(a)setFocus(a);setTab('Guide');}
- async function save(a:Asset){setBusy(true);try{const r=await fetch('/api/assets',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(a)});const j:any=await readApiResponse(r);setAssets(prev=>[j.asset,...prev.filter(x=>x.id!==a.id)]);setSelected(a.id);setFocus(a);setDraft(null);setDemo(false);setNotice('Asset saved to your private cloud workspace.');return true;}catch(e){setNotice((e as Error).message);return false;}finally{setBusy(false);}}
- async function locate(text:string){setSearching(true);setResults([]);try{const j={results:await searchAddress(text)};setResults(j.results);if(!j.results.length)setNotice('No address found. Try adding the city or ZIP code.');}catch(e){setNotice((e as Error).message);}finally{setSearching(false);}}
- async function upload(file:File,kind:string){if(!draft)return;setBusy(true);try{const f=new FormData();f.append('file',file);const r=await fetch('/api/files',{method:'POST',body:f});if(!r.ok)throw new Error('Upload failed. Use a JPG, PNG or WebP under 8 MB.');const {key}=await r.json() as {key:string};setDraft(d=>d?kind==='plan'?{...d,plan:key}:{...d,photos:[...d.photos.filter(p=>p.label!==kind),{label:kind,key}]}:d);}catch(e){setNotice((e as Error).message);}finally{setBusy(false);}}
- async function runExport(list:Asset[],unreal=false){if(demo){setNotice('Add your own assets to export a real equipment package.');return;}setBusy(true);try{await exportAssets(list,unreal);setNotice('Your export is ready.');}catch(e){setNotice((e as Error).message);}finally{setBusy(false);}}
- async function restore(file:File){if(!confirm('Import this backup as NEW asset copies? Existing records will not be overwritten.'))return;setBusy(true);try{const n=await importAssets(file);setNotice(`${n} assets restored as new copies.`);setDemo(false);}catch(e){setNotice((e as Error).message);}finally{await load();setBusy(false);}}
- async function showQR(){if(!current||demo){setNotice('Save a real asset first to create its QR label.');return;}const QR=await import('qrcode');setQr(await QR.toDataURL(location.origin+'/?asset='+current.id,{width:400,margin:2,color:{dark:'#173d32',light:'#ffffff'}}));}
- const formField=(label:string,key:keyof Asset,type='text',required=false)=><label className="field" key={key}>{label}<input type={type} required={required} maxLength={250} value={String(draft?.[key]??'')} onChange={e=>setDraft(d=>d?{...d,[key]:type==='number'?Number(e.target.value):e.target.value}:d)} step={type==='number'?'any':undefined}/></label>;
- return <main><div inert={planner} aria-hidden={planner}><header className="topbar"><a className="brand" href="/"><span className="brand-mark"><LocateFixed size={27}/></span><span>STV <b>Locate</b><small>EVERY ASSET. EXACTLY WHERE.</small></span></a><form className="address-search" onSubmit={e=>{e.preventDefault();locate(address);}}><Search size={19}/><input aria-label="Find an address" placeholder="Find an address, building or place…" value={address} onChange={e=>setAddress(e.target.value)} required minLength={3}/><button disabled={searching} aria-label="Search address">{searching?<Loader2 className="spin" size={18}/>:<ArrowUpRight size={18}/>}</button></form><div className="header-actions"><span className="private-label"><span className="live-dot"/>Private workspace</span><button className="icon-button" aria-label="About and integration" onClick={()=>setInfo(true)}><CircleHelp size={21}/></button><span className="avatar">STV</span></div></header>
- {results.length>0&&<div className="search-results"><div className="row"><small>{googleKey?'ADDRESS RESULTS · GOOGLE MAPS':'ADDRESS RESULTS · © OPENSTREETMAP'}</small><button className="icon-button" aria-label="Close search results" onClick={()=>setResults([])}><X size={16}/></button></div>{results.map((r:any)=><button key={r.place_id} onClick={()=>{const pos={lat:Number(r.lat),lng:Number(r.lon),...(r.provider==='google'?{mapProvider:'google' as const}:{})};setFocus(pos);if(draft)setDraft({...draft,...pos,address:r.display_name});setResults([]);setAddress(r.display_name);}}><MapPin size={18}/><span>{r.display_name}</span><ChevronRight size={16}/></button>)}</div>}
- <div className="workspace"><aside className="sidebar"><div className="workspace-title"><div><p className="eyebrow">SERVING THE VIBE</p><h1>Your equipment<span>.</span></h1></div><span className="count">{shown.length}</span></div><p className="muted intro">From the street to the exact spot.</p><button className="primary add-button" onClick={()=>{setPlanner(true);setResults([]);}}><Plus size={19}/>Add inventory</button><button className="saved-buildings-link" onClick={()=>setPlanner(true)}><Building2 size={16}/>Saved buildings & equipment spots<ChevronRight size={14}/></button><div className="nav-heading">WORKSPACE</div><div className="view-switch"><button className={view==='map'?'active':''} onClick={()=>setView('map')}><Map size={17}/>Map view</button><button className={view==='list'?'active':''} onClick={()=>setView('list')}><List size={17}/>Inventory</button></div><div className="filter-search"><Search size={17}/><input aria-label="Filter equipment" placeholder="Search equipment…" value={query} onChange={e=>setQuery(e.target.value)}/></div><div className="filter-row"><select aria-label="Equipment category" value={category} onChange={e=>setCategory(e.target.value)}>{categories.map(c=><option key={c}>{c}</option>)}</select><select aria-label="Equipment status" value={status} onChange={e=>setStatus(e.target.value)}>{['All statuses','Operational','Needs service','Offline'].map(s=><option key={s}>{s}</option>)}</select></div><div className="list-heading"><span>{filtered.length} EQUIPMENT {demo?'· DEMO':''}</span><span>LOCATION</span></div><div className="asset-list">{loading?<div className="empty"><Loader2 className="spin"/>Loading your workspace…</div>:cloudError?<div className="empty"><p>{cloudError}</p>{/sign in/i.test(cloudError)&&<a className="primary" href="/signin-with-chatgpt?return_to=%2F" target="_top">Sign in again</a>}<button className="secondary" onClick={load}>Retry cloud connection</button></div>:filtered.length?filtered.map(a=><button className={'asset-card '+(a.id===selected?'selected':'')} key={a.id} onClick={()=>choose(a.id)}><span className={'equipment-icon '+a.category.toLowerCase()}>{iconFor(a.category)}</span><span className="asset-card-text"><strong>{a.name}</strong><small><MapPin size={11}/>{a.site}</small><span className="asset-card-bottom"><span className={'status-dot '+a.status.replaceAll(' ','-')}/>{a.status}<i>{a.tag||a.category}</i></span></span><ChevronRight size={15}/></button>):<div className="empty"><Box size={30}/><h3>{shown.length?'No matching equipment':'Make this map yours'}</h3><p>{shown.length?'Try another search or filter.':'Add your first machine, then save the route from entrance to equipment.'}</p>{!shown.length&&<button className="text-button" onClick={()=>{setDemo(true);choose('demo-1');setSelected('demo-1');setFocus(demoAssets[0]);}}>Explore 3 demo assets <ArrowUpRight size={16}/></button>}</div>}</div><div className="sidebar-bottom"><button onClick={()=>runExport(assets)} disabled={busy}><Download size={16}/>Backup</button><label className="file-button"><Upload size={16}/>Restore<input type="file" accept=".zip" disabled={busy} onChange={e=>{const f=e.target.files?.[0];if(f)restore(f);e.target.value='';}}/></label><button onClick={()=>setInfo(true)} aria-label="Integration information"><Link2 size={16}/></button></div><div className="cloud-state"><span className="live-dot"/>{cloudError?'Connection needs attention':'Cloud records · private to you'}</div></aside>
- <section className={'canvas-area '+(current?'has-detail':'')}>
- {demo&&<div className="demo-banner"><span><b>Demo workspace</b> · Fictional equipment and locations. Nothing here is saved.</span><button onClick={()=>{setDemo(false);setSelected('');}}>Exit demo <X size={14}/></button></div>}
- {view==='map'&&!planner?<AssetMap requiresGoogle={focus?.mapProvider==='google'||draft?.mapProvider==='google'} assets={filtered} selected={selected} onSelect={choose} focus={focus} picking={picking} onPick={(lat,lng)=>{setDraft(d=>d?{...d,lat,lng}:d);setPicking(false);}}/>:<div className="inventory"><p className="eyebrow">ASSET REGISTER</p><h2>A place for everything.</h2><p className="muted">Search, locate and maintain your equipment.</p><div className="inventory-table"><table><thead><tr><th>Equipment</th><th>Location</th><th>Status</th><th>Asset ID</th></tr></thead><tbody>{filtered.map(a=><tr key={a.id} onClick={()=>choose(a.id)}><td><button className="text-button" onClick={()=>choose(a.id)}>{iconFor(a.category,17)}{a.name}</button></td><td>{a.site}<small>{a.room} · Floor {a.floor||'—'}</small></td><td><span className={'badge '+a.status.replaceAll(' ','-')}>{a.status}</span></td><td>{a.tag||'—'}</td></tr>)}</tbody></table>{!filtered.length&&<div className="empty">No equipment to display. Add your first asset.</div>}</div></div>}
- {view==='map'&&!current&&<div className="map-welcome"><div className="mini-icon"><MapPin size={21}/></div><p className="eyebrow">YOUR FIELD OPERATIONS, CONNECTED</p><h2>Know where.<br/><em>Get there.</em></h2><p>One clear path from the address<br/>to the equipment you’re looking for.</p><button className="primary" onClick={()=>setPlanner(true)}>Place your first asset <Plus size={17}/></button></div>}
- {picking&&<div className="pick-banner">Click the equipment’s outdoor location on the map.<button onClick={()=>setPicking(false)}>Cancel</button></div>}
- <div className="map-stats"><div><b>{shown.length}</b><span>Total assets</span></div><div><b>{new Set(shown.map(a=>a.site)).size}</b><span>Locations</span></div><div><b className="amber">{shown.filter(a=>a.status==='Needs service').length}</b><span>Need attention</span></div></div>
- </section>
- {current&&!picking&&<aside className="detail"><div className="detail-heading"><span className="eyebrow">EQUIPMENT PROFILE</span><button className="icon-button" aria-label="Close equipment profile" onClick={()=>setSelected('')}><X size={20}/></button></div><div className="equipment-hero"><span className="large-equipment">{iconFor(current.category,52)}</span><span className={'badge '+current.status.replaceAll(' ','-')}>{current.status}</span><span className="hero-grid"/></div><div className="detail-title"><p className="eyebrow">{current.tag||'UNTAGGED'} / {current.category.toUpperCase()}</p><h2>{current.name}</h2><p><Building2 size={15}/>{current.site}</p><div className="detail-actions"><a className="primary" target="_blank" rel="noopener noreferrer" href={'https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(current.lat+','+current.lng)}><Navigation size={16}/>Get directions<ArrowUpRight size={16}/></a><button className="secondary" aria-label="QR label" onClick={showQR}><QrCode size={19}/></button><button className="secondary" aria-label="Edit equipment" onClick={()=>demo?setNotice('Demo records are read-only. Add your own equipment to edit.'):setDraft(structuredClone(current))}><Pencil size={18}/></button></div></div><div className="tabs">{['Guide','Details','Activity'].map(t=><button className={tab===t?'active':''} key={t} onClick={()=>setTab(t)}>{t}</button>)}</div><div className="detail-content">
- {tab==='Guide'&&<><div className="section-label">FROM ARRIVAL TO EQUIPMENT</div><div className="route-step"><span>1</span><div><h4><Car size={15}/>Arrive & park</h4><p>{current.parking||'No parking instructions yet.'}</p></div></div><div className="route-step"><span>2</span><div><h4><DoorOpen size={15}/>Find your way inside</h4><p>{current.entrance||'Add an entrance and route description.'}</p></div></div><div className="route-step last"><span>3</span><div><h4><MapPin size={15}/>You’re here</h4><p>{current.room||'Room not specified'} · Floor {current.floor||'—'}</p></div></div>{current.plan&&<div className="floorplan-section"><div className="section-label"><Layers size={14}/>INDOOR LOCATION · FLOOR {current.floor}</div><div className="floorplan"><img src={imageUrl(current.plan)} alt="Uploaded floor plan"/><span className="plan-pin" style={{left:current.pinX+'%',top:current.pinY+'%'}}><MapPin size={22}/></span></div><small>Manually placed equipment pin</small></div>}<div className="section-label">VISUAL LANDMARKS</div><div className="photo-grid">{['Entrance','Route','Equipment'].map(label=>{const p=current.photos.find(p=>p.label===label);return <div key={label}>{p?<a href={imageUrl(p.key)} target="_blank" rel="noopener"><img src={imageUrl(p.key)} alt={label}/></a>:<div className="photo-placeholder"><Camera size={20}/></div>}<small>{label}</small></div>;})}</div>{!current.photos.length&&<p className="muted small">Add three photos so the next visit is effortless.</p>}{current.tourUrl&&<a className="tour-link" href={current.tourUrl} target="_blank" rel="noopener noreferrer">Open interior tour<ArrowUpRight size={17}/></a>}</>}
- {tab==='Details'&&<><div className="section-label">ASSET INFORMATION</div><dl>{[['Business type',current.businessType||'Not specified'],['Equipment type',current.equipmentType||current.category],['Asset ID',current.tag],['Model',current.model],['Serial number',current.serial],['Category',current.category],['Address',current.address],['Coordinates',`${current.lat.toFixed(6)}, ${current.lng.toFixed(6)}`]].map(([k,v])=><div key={k}><dt>{k}</dt><dd>{v||'Not recorded'}</dd></div>)}</dl><h4>Notes</h4><p className="note-text">{current.notes||'No notes yet.'}</p><button className="secondary full" disabled={busy||demo} onClick={()=>runExport([current],true)}><Download size={16}/>Export Unreal reconstruction brief</button><p className="muted small">Includes references and strict-reconstruction instructions. This does not generate a 3D model.</p><button className="danger" disabled={busy||demo} onClick={async()=>{if(!confirm(`Permanently delete ${current.name}? Download a backup first if needed. Uploaded files are retained, but the record cannot be restored without a backup.`))return;setBusy(true);try{const r=await fetch('/api/assets?id='+current.id,{method:'DELETE'});if(!r.ok)throw new Error('Delete failed.');setAssets(prev=>prev.filter(a=>a.id!==current.id));setSelected('');setNotice('Asset record deleted. Restore from a backup if needed.');}catch(e){setNotice((e as Error).message);}finally{setBusy(false);}}}><Trash2 size={15}/>Delete asset</button></>}
- {tab==='Activity'&&<><div className="section-label">FIELD NOTES & SERVICE LOG</div><form onSubmit={async e=>{e.preventDefault();if(demo)return;const ok=await save({...current,history:[{id:crypto.randomUUID(),date:new Date().toISOString(),text:activity},...current.history]});if(ok)setActivity('');}}><textarea aria-label="Service note" placeholder="What happened on this visit?" value={activity} onChange={e=>setActivity(e.target.value)} maxLength={2000} required/><button className="primary full" disabled={busy||demo}><Plus size={16}/>Add field note</button></form>{current.history.length?current.history.map(h=><article className="history-note" key={h.id}><small>{new Date(h.date).toLocaleString()}</small><p>{h.text}</p></article>):<div className="empty"><Activity size={25}/><p>No visits logged yet.</p></div>}</>}
- </div></aside>}
- </div>
- {draft&&!picking&&<div className="modal-backdrop"><section className="modal editor" role="dialog" aria-modal="true" aria-label="Equipment editor"><div className="modal-header"><div><p className="eyebrow">BUILD YOUR LOCATION LIBRARY</p><h2>{assets.some(a=>a.id===draft.id)?'Edit equipment':'Add equipment'}</h2></div><button className="icon-button" aria-label="Close editor" disabled={busy} onClick={()=>{setDraft(null);setResults([]);}}><X/></button></div><form onSubmit={e=>{e.preventDefault();save(draft);}}><div className="editor-body"><h3>01 <span>The equipment</span></h3><div className="form-grid">{formField('Equipment name *','name','text',true)}{formField('Asset tag','tag')}<label className="field">Category<select value={draft.category} onChange={e=>setDraft({...draft,category:e.target.value as Asset['category']})}>{categories.slice(1).map(c=><option key={c}>{c}</option>)}</select></label><label className="field">Status<select value={draft.status} onChange={e=>setDraft({...draft,status:e.target.value as Asset['status']})}>{['Operational','Needs service','Offline'].map(s=><option key={s}>{s}</option>)}</select></label>{formField('Business type','businessType')}{formField('Specific equipment type','equipmentType')}{formField('Model','model')}{formField('Serial number','serial')}</div><h3>02 <span>The location</span></h3><div className="form-grid">{formField('Building / site name *','site','text',true)}{formField('Street address *','address','text',true)}</div><div className="inline-actions"><button type="button" className="secondary" disabled={searching||draft.address.length<3} onClick={()=>locate(draft.address)}><Search size={16}/>Find address</button><button type="button" className="secondary" onClick={()=>{setView('map');setFocus(draft);setPicking(true);setResults([]);}}><MapPin size={16}/>Place pin on map</button></div><p className="muted small">Verify coordinates before saving. Initial coordinates point to central Des Moines.</p><div className="form-grid">{formField('Latitude','lat','number',true)}{formField('Longitude','lng','number',true)}{formField('Floor','floor')}{formField('Room / exact spot','room')}</div><h3>03 <span>The way inside</span></h3><label className="field">Parking instructions<textarea value={draft.parking} onChange={e=>setDraft({...draft,parking:e.target.value})} maxLength={3000} placeholder="Where should the driver park?"/></label><label className="field">Entrance & route to equipment<textarea value={draft.entrance} onChange={e=>setDraft({...draft,entrance:e.target.value})} maxLength={3000} placeholder="Use the east entrance, check in, then…"/></label><div className="upload-grid">{['Entrance','Route','Equipment'].map(label=>{const p=draft.photos.find(p=>p.label===label);return <label key={label} className="upload-card">{p?<img src={imageUrl(p.key)} alt={label}/>:<Camera size={24}/>}<b>{label}</b><small>{p?'Replace photo':'Add photo'}</small><input type="file" accept="image/jpeg,image/png,image/webp" disabled={busy} onChange={e=>{if(e.target.files?.[0])upload(e.target.files[0],label);}}/></label>;})}</div><label className="secondary upload-plan"><Layers size={17}/>{draft.plan?'Replace floor plan':'Upload floor plan image'}<input type="file" accept="image/jpeg,image/png,image/webp" disabled={busy} onChange={e=>{if(e.target.files?.[0])upload(e.target.files[0],'plan');}}/></label>{draft.plan&&<><p className="muted small">Click the plan to place the equipment. Use arrow keys on the plan for fine adjustments.</p><div className="floorplan editable" role="button" tabIndex={0} aria-label="Position equipment on floor plan using mouse or arrow keys" onKeyDown={e=>{const move:Record<string,[number,number]>={ArrowUp:[0,-1],ArrowDown:[0,1],ArrowLeft:[-1,0],ArrowRight:[1,0]};if(move[e.key]){e.preventDefault();setDraft({...draft,pinX:Math.max(0,Math.min(100,draft.pinX+move[e.key][0])),pinY:Math.max(0,Math.min(100,draft.pinY+move[e.key][1]))});}}} onClick={e=>{const r=e.currentTarget.getBoundingClientRect();setDraft({...draft,pinX:(e.clientX-r.left)/r.width*100,pinY:(e.clientY-r.top)/r.height*100});}}><img src={imageUrl(draft.plan)} alt="Click to place equipment on floor plan"/><span className="plan-pin" style={{left:draft.pinX+'%',top:draft.pinY+'%'}}><MapPin size={24}/></span></div></>}<label className="field">Notes<textarea value={draft.notes} maxLength={5000} onChange={e=>setDraft({...draft,notes:e.target.value})}/></label>{formField('Hosted interior tour link (optional, HTTPS)','tourUrl','url')}<p className="muted small">Only upload photos and floor plans you have permission to use. Images: JPG, PNG or WebP, up to 8 MB each.</p></div><footer className="modal-footer"><span>Private cloud storage</span><button type="button" className="secondary" disabled={busy} onClick={()=>{setDraft(null);setResults([]);}}>Cancel</button><button className="primary" disabled={busy}>{busy?<Loader2 size={17} className="spin"/>:<Check size={17}/>}Save equipment</button></footer></form></section></div>}
- {info&&<div className="modal-backdrop"><section className="modal info-modal" role="dialog" aria-modal="true" aria-label="About STV Locate"><div className="modal-header"><h2>Standalone today.<br/>Connected tomorrow.</h2><button className="icon-button" aria-label="Close information" onClick={()=>setInfo(false)}><X/></button></div><div className="editor-body"><p>STV Locate is your private equipment-location workspace. Records and images are saved in the cloud, not just in this browser.</p><h3><Link2 size={20}/>Built for a future VendDoctorAi connection</h3><p>Stable asset IDs, standard latitude/longitude, structured records and downloadable backups keep your data portable. VendDoctorAi is not connected yet; its API and account access will be needed for integration.</p><h3><Map size={20}/>Aerial + indoor context</h3><p>The lightweight aerial map uses the Esri imagery source selected by God’s Eye View; the original 3D adapter is retained in the source. Floor-plan pins and locations are manually recorded—not live GPS or automatically measured interiors.</p><h3><Box size={20}/>Unreal reconstruction handoff</h3><p>Export a single asset’s photos, details and strict-reconstruction brief for Unreal Home Wizard. Actual 3D reconstruction requires Unreal, reference review and rendering hardware. You do not need AWS to use this app.</p><p className="muted">QR links require access to this private app. Team roles, device trackers and automatic 3D generation are not included in this first version.</p><div className="credits"><a href="https://github.com/bilawalsidhu/gods-eye-view" target="_blank" rel="noopener">God’s Eye View ↗</a><a href="/licenses/gods-eye-view.txt" target="_blank">MIT license</a><a href="https://github.com/amirmushichge/unreal-home-wizard" target="_blank" rel="noopener">Unreal Home Wizard ↗</a><a href="/licenses/unreal-home-wizard.txt" target="_blank">Apache 2.0 license</a></div></div></section></div>}
- {qr&&current&&<div className="modal-backdrop"><section className="modal qr-modal" role="dialog" aria-modal="true" aria-label="Equipment QR label"><button className="icon-button qr-close" aria-label="Close QR label" onClick={()=>setQr('')}><X/></button><p className="eyebrow">STV LOCATE · EQUIPMENT LABEL</p><h2>{current.name}</h2><img src={qr} alt={'QR code for '+current.name}/><strong>{current.tag||current.id}</strong><p className="muted">Scan to open this equipment record.<br/>Private app access is required.</p><a className="primary" href={qr} download={'STV-'+(current.tag||current.id)+'-QR.png'}><Download size={17}/>Download QR label</a></section></div>}
- {notice&&<div className="toast" role="status">{notice}{/sign in/i.test(notice)&&<a href="/signin-with-chatgpt?return_to=%2F" target="_top">Sign in again</a>}<button aria-label="Dismiss notification" onClick={()=>setNotice('')}><X size={16}/></button></div>}{busy&&!draft&&<div className="busy-indicator"><Loader2 className="spin" size={16}/>Working…</div>}
- </div>{planner&&<InventoryPlanner assets={assets} onSaved={a=>{setAssets(prev=>[a,...prev.filter(x=>x.id!==a.id)]);setDemo(false);}} onClose={()=>setPlanner(false)}/>}
- </main>;
+"use client";
+import { useEffect, useState, useMemo } from "react";
+import {
+  MapPin,
+  Search,
+  Plus,
+  ArrowUpRight,
+  Box,
+  Coffee,
+  Droplets,
+  Snowflake,
+  ChevronRight,
+  X,
+  Navigation,
+  Building2,
+  DoorOpen,
+  Car,
+  Camera,
+  Layers,
+  Download,
+  Upload,
+  QrCode,
+  Pencil,
+  Check,
+  Map,
+  List,
+  Loader2,
+  CircleHelp,
+  Link2,
+  Trash2,
+  Activity,
+  LocateFixed,
+} from "lucide-react";
+import { searchAddress, useGoogleKey } from "../lib/google-maps";
+import { readApiResponse } from "../lib/api-response";
+import AssetMap from "../components/equipment-map";
+import InventoryPlanner from "../components/inventory-planner";
+import { newAsset, type Asset } from "../lib/asset";
+import { demoAssets } from "../lib/demo";
+import { download, exportAssets, importAssets } from "../lib/export";
+const categories = ["All equipment", "Vending", "Coffee", "Water", "Refrigeration", "Other"];
+const iconFor = (category: string, size = 20) =>
+  category === "Coffee" ? (
+    <Coffee size={size} />
+  ) : category === "Water" ? (
+    <Droplets size={size} />
+  ) : category === "Refrigeration" ? (
+    <Snowflake size={size} />
+  ) : (
+    <Box size={size} />
+  );
+const imageUrl = (key: string) => "/api/files?key=" + encodeURIComponent(key);
+export default function AdvancedWorkspace() {
+  const googleKey = useGoogleKey();
+  const [planner, setPlanner] = useState(false);
+  const [assets, setAssets] = useState<Asset[]>([]),
+    [loading, setLoading] = useState(true),
+    [demo, setDemo] = useState(false),
+    [selected, setSelected] = useState(""),
+    [query, setQuery] = useState(""),
+    [category, setCategory] = useState("All equipment"),
+    [status, setStatus] = useState("All statuses"),
+    [tab, setTab] = useState("Guide"),
+    [view, setView] = useState("map"),
+    [notice, setNotice] = useState(""),
+    [busy, setBusy] = useState(false),
+    [draft, setDraft] = useState<Asset | null>(null),
+    [picking, setPicking] = useState(false),
+    [focus, setFocus] = useState<{ lat: number; lng: number; zoom?: number; mapProvider?: "google" } | null>(
+      null,
+    ),
+    [address, setAddress] = useState(""),
+    [results, setResults] = useState<any[]>([]),
+    [searching, setSearching] = useState(false),
+    [info, setInfo] = useState(false),
+    [qr, setQr] = useState(""),
+    [activity, setActivity] = useState(""),
+    [cloudError, setCloudError] = useState("");
+  const shown = demo ? demoAssets : assets;
+  const filtered = useMemo(
+    () =>
+      shown.filter(
+        (a) =>
+          (category === "All equipment" || a.category === category) &&
+          (status === "All statuses" || a.status === status) &&
+          `${a.name} ${a.tag} ${a.site} ${a.address} ${a.serial} ${a.businessType || ""} ${a.equipmentType || ""}`
+            .toLowerCase()
+            .includes(query.toLowerCase()),
+      ),
+    [shown, category, status, query],
+  );
+  const current = shown.find((a) => a.id === selected);
+  async function load() {
+    setLoading(true);
+    try {
+      const r = await fetch("/api/assets");
+      const j: any = await readApiResponse(r);
+      setAssets(j.assets);
+      setCloudError("");
+      const id = new URLSearchParams(location.search).get("asset");
+      if (id) {
+        setSelected(id);
+        const a = j.assets.find((a: Asset) => a.id === id);
+        if (a) setFocus(a);
+      }
+    } catch (e) {
+      setCloudError((e as Error).message || "Cloud records unavailable.");
+    } finally {
+      setLoading(false);
+    }
+  }
+  useEffect(() => {
+    load();
+  }, []);
+  useEffect(() => {
+    if (!notice) return;
+    const t = setTimeout(() => setNotice(""), 7000);
+    return () => clearTimeout(t);
+  }, [notice]);
+  useEffect(() => {
+    if (!(draft && !picking) && !info && !qr) return;
+    const previous = document.activeElement as HTMLElement | null;
+    const modal = document.querySelector<HTMLElement>(".modal");
+    const targets = () =>
+      Array.from(
+        modal?.querySelectorAll<HTMLElement>(
+          'button:not(:disabled),a[href],input:not(:disabled),select,textarea,[tabindex="0"]',
+        ) || [],
+      ).filter((el) => el.offsetParent !== null);
+    targets()[0]?.focus();
+    const key = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !busy) {
+        setDraft(null);
+        setInfo(false);
+        setQr("");
+        setResults([]);
+      }
+      if (e.key === "Tab") {
+        const items = targets(),
+          first = items[0],
+          last = items.at(-1);
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last?.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first?.focus();
+        }
+      }
+    };
+    document.addEventListener("keydown", key);
+    return () => {
+      document.removeEventListener("keydown", key);
+      previous?.focus();
+    };
+  }, [Boolean(draft && !picking), info, Boolean(qr), busy]);
+  function choose(id: string) {
+    setSelected(id);
+    const a = shown.find((a) => a.id === id);
+    if (a) setFocus(a);
+    setTab("Guide");
+  }
+  async function save(a: Asset) {
+    setBusy(true);
+    try {
+      const r = await fetch("/api/assets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(a),
+      });
+      const j: any = await readApiResponse(r);
+      setAssets((prev) => [j.asset, ...prev.filter((x) => x.id !== a.id)]);
+      setSelected(a.id);
+      setFocus(a);
+      setDraft(null);
+      setDemo(false);
+      setNotice("Asset saved to your private cloud workspace.");
+      return true;
+    } catch (e) {
+      setNotice((e as Error).message);
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function locate(text: string) {
+    setSearching(true);
+    setResults([]);
+    try {
+      const j = { results: await searchAddress(text) };
+      setResults(j.results);
+      if (!j.results.length) setNotice("No address found. Try adding the city or ZIP code.");
+    } catch (e) {
+      setNotice((e as Error).message);
+    } finally {
+      setSearching(false);
+    }
+  }
+  async function upload(file: File, kind: string) {
+    if (!draft) return;
+    setBusy(true);
+    try {
+      const f = new FormData();
+      f.append("file", file);
+      const r = await fetch("/api/files", { method: "POST", body: f });
+      if (!r.ok) throw new Error("Upload failed. Use a JPG, PNG or WebP under 8 MB.");
+      const { key } = (await r.json()) as { key: string };
+      setDraft((d) =>
+        d
+          ? kind === "plan"
+            ? { ...d, plan: key }
+            : { ...d, photos: [...d.photos.filter((p) => p.label !== kind), { label: kind, key }] }
+          : d,
+      );
+    } catch (e) {
+      setNotice((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function runExport(list: Asset[], unreal = false) {
+    if (demo) {
+      setNotice("Add your own assets to export a real equipment package.");
+      return;
+    }
+    setBusy(true);
+    try {
+      await exportAssets(list, unreal);
+      setNotice("Your export is ready.");
+    } catch (e) {
+      setNotice((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function restore(file: File) {
+    if (!confirm("Import this backup as NEW asset copies? Existing records will not be overwritten.")) return;
+    setBusy(true);
+    try {
+      const n = await importAssets(file);
+      setNotice(`${n} assets restored as new copies.`);
+      setDemo(false);
+    } catch (e) {
+      setNotice((e as Error).message);
+    } finally {
+      await load();
+      setBusy(false);
+    }
+  }
+  async function showQR() {
+    if (!current || demo) {
+      setNotice("Save a real asset first to create its QR label.");
+      return;
+    }
+    const QR = await import("qrcode");
+    setQr(
+      await QR.toDataURL(location.origin + "/?asset=" + current.id, {
+        width: 400,
+        margin: 2,
+        color: { dark: "#173d32", light: "#ffffff" },
+      }),
+    );
+  }
+  const formField = (label: string, key: keyof Asset, type = "text", required = false) => (
+    <label className="field" key={key}>
+      {label}
+      <input
+        type={type}
+        required={required}
+        maxLength={250}
+        value={String(draft?.[key] ?? "")}
+        onChange={(e) =>
+          setDraft((d) =>
+            d ? { ...d, [key]: type === "number" ? Number(e.target.value) : e.target.value } : d,
+          )
+        }
+        step={type === "number" ? "any" : undefined}
+      />
+    </label>
+  );
+  return (
+    <main>
+      <div inert={planner} aria-hidden={planner}>
+        <header className="topbar">
+          <a className="brand" href="/">
+            <span className="brand-mark">
+              <LocateFixed size={27} />
+            </span>
+            <span>
+              STV <b>Locate</b>
+              <small>EVERY ASSET. EXACTLY WHERE.</small>
+            </span>
+          </a>
+          <form
+            className="address-search"
+            onSubmit={(e) => {
+              e.preventDefault();
+              locate(address);
+            }}
+          >
+            <Search size={19} />
+            <input
+              aria-label="Find an address"
+              placeholder="Find an address, building or place…"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              required
+              minLength={3}
+            />
+            <button disabled={searching} aria-label="Search address">
+              {searching ? <Loader2 className="spin" size={18} /> : <ArrowUpRight size={18} />}
+            </button>
+          </form>
+          <div className="header-actions">
+            <span className="private-label">
+              <span className="live-dot" />
+              Private workspace
+            </span>
+            <button className="icon-button" aria-label="About and integration" onClick={() => setInfo(true)}>
+              <CircleHelp size={21} />
+            </button>
+            <span className="avatar">STV</span>
+          </div>
+        </header>
+        {results.length > 0 && (
+          <div className="search-results">
+            <div className="row">
+              <small>
+                {googleKey ? "ADDRESS RESULTS · GOOGLE MAPS" : "ADDRESS RESULTS · © OPENSTREETMAP"}
+              </small>
+              <button
+                className="icon-button"
+                aria-label="Close search results"
+                onClick={() => setResults([])}
+              >
+                <X size={16} />
+              </button>
+            </div>
+            {results.map((r: any) => (
+              <button
+                key={r.place_id}
+                onClick={() => {
+                  const pos = {
+                    lat: Number(r.lat),
+                    lng: Number(r.lon),
+                    ...(r.provider === "google" ? { mapProvider: "google" as const } : {}),
+                  };
+                  setFocus(pos);
+                  if (draft) setDraft({ ...draft, ...pos, address: r.display_name });
+                  setResults([]);
+                  setAddress(r.display_name);
+                }}
+              >
+                <MapPin size={18} />
+                <span>{r.display_name}</span>
+                <ChevronRight size={16} />
+              </button>
+            ))}
+          </div>
+        )}
+        <div className="workspace">
+          <aside className="sidebar">
+            <div className="workspace-title">
+              <div>
+                <p className="eyebrow">SERVING THE VIBE</p>
+                <h1>
+                  Your equipment<span>.</span>
+                </h1>
+              </div>
+              <span className="count">{shown.length}</span>
+            </div>
+            <p className="muted intro">From the street to the exact spot.</p>
+            <button
+              className="primary add-button"
+              onClick={() => {
+                setPlanner(true);
+                setResults([]);
+              }}
+            >
+              <Plus size={19} />
+              Add inventory
+            </button>
+            <button className="saved-buildings-link" onClick={() => setPlanner(true)}>
+              <Building2 size={16} />
+              Saved buildings & equipment spots
+              <ChevronRight size={14} />
+            </button>
+            <div className="nav-heading">WORKSPACE</div>
+            <div className="view-switch">
+              <button className={view === "map" ? "active" : ""} onClick={() => setView("map")}>
+                <Map size={17} />
+                Map view
+              </button>
+              <button className={view === "list" ? "active" : ""} onClick={() => setView("list")}>
+                <List size={17} />
+                Inventory
+              </button>
+            </div>
+            <div className="filter-search">
+              <Search size={17} />
+              <input
+                aria-label="Filter equipment"
+                placeholder="Search equipment…"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+              />
+            </div>
+            <div className="filter-row">
+              <select
+                aria-label="Equipment category"
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+              >
+                {categories.map((c) => (
+                  <option key={c}>{c}</option>
+                ))}
+              </select>
+              <select
+                aria-label="Equipment status"
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+              >
+                {["All statuses", "Operational", "Needs service", "Offline"].map((s) => (
+                  <option key={s}>{s}</option>
+                ))}
+              </select>
+            </div>
+            <div className="list-heading">
+              <span>
+                {filtered.length} EQUIPMENT {demo ? "· DEMO" : ""}
+              </span>
+              <span>LOCATION</span>
+            </div>
+            <div className="asset-list">
+              {loading ? (
+                <div className="empty">
+                  <Loader2 className="spin" />
+                  Loading your workspace…
+                </div>
+              ) : cloudError ? (
+                <div className="empty">
+                  <p>{cloudError}</p>
+                  {/sign in/i.test(cloudError) && (
+                    <a className="primary" href="/signin-with-chatgpt?return_to=%2F" target="_top">
+                      Sign in again
+                    </a>
+                  )}
+                  <button className="secondary" onClick={load}>
+                    Retry cloud connection
+                  </button>
+                </div>
+              ) : filtered.length ? (
+                filtered.map((a) => (
+                  <button
+                    className={"asset-card " + (a.id === selected ? "selected" : "")}
+                    key={a.id}
+                    onClick={() => choose(a.id)}
+                  >
+                    <span className={"equipment-icon " + a.category.toLowerCase()}>
+                      {iconFor(a.category)}
+                    </span>
+                    <span className="asset-card-text">
+                      <strong>{a.name}</strong>
+                      <small>
+                        <MapPin size={11} />
+                        {a.site}
+                      </small>
+                      <span className="asset-card-bottom">
+                        <span className={"status-dot " + a.status.replaceAll(" ", "-")} />
+                        {a.status}
+                        <i>{a.tag || a.category}</i>
+                      </span>
+                    </span>
+                    <ChevronRight size={15} />
+                  </button>
+                ))
+              ) : (
+                <div className="empty">
+                  <Box size={30} />
+                  <h3>{shown.length ? "No matching equipment" : "Make this map yours"}</h3>
+                  <p>
+                    {shown.length
+                      ? "Try another search or filter."
+                      : "Add your first machine, then save the route from entrance to equipment."}
+                  </p>
+                  {!shown.length && (
+                    <button
+                      className="text-button"
+                      onClick={() => {
+                        setDemo(true);
+                        choose("demo-1");
+                        setSelected("demo-1");
+                        setFocus(demoAssets[0]);
+                      }}
+                    >
+                      Explore 3 demo assets <ArrowUpRight size={16} />
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+            <div className="sidebar-bottom">
+              <button onClick={() => runExport(assets)} disabled={busy}>
+                <Download size={16} />
+                Backup
+              </button>
+              <label className="file-button">
+                <Upload size={16} />
+                Restore
+                <input
+                  type="file"
+                  accept=".zip"
+                  disabled={busy}
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) restore(f);
+                    e.target.value = "";
+                  }}
+                />
+              </label>
+              <button onClick={() => setInfo(true)} aria-label="Integration information">
+                <Link2 size={16} />
+              </button>
+            </div>
+            <div className="cloud-state">
+              <span className="live-dot" />
+              {cloudError ? "Connection needs attention" : "Cloud records · private to you"}
+            </div>
+          </aside>
+          <section className={"canvas-area " + (current ? "has-detail" : "")}>
+            {demo && (
+              <div className="demo-banner">
+                <span>
+                  <b>Demo workspace</b> · Fictional equipment and locations. Nothing here is saved.
+                </span>
+                <button
+                  onClick={() => {
+                    setDemo(false);
+                    setSelected("");
+                  }}
+                >
+                  Exit demo <X size={14} />
+                </button>
+              </div>
+            )}
+            {view === "map" && !planner ? (
+              <AssetMap
+                requiresGoogle={focus?.mapProvider === "google" || draft?.mapProvider === "google"}
+                assets={filtered}
+                selected={selected}
+                onSelect={choose}
+                focus={focus}
+                picking={picking}
+                onPick={(lat, lng) => {
+                  setDraft((d) => (d ? { ...d, lat, lng } : d));
+                  setPicking(false);
+                }}
+              />
+            ) : (
+              <div className="inventory">
+                <p className="eyebrow">ASSET REGISTER</p>
+                <h2>A place for everything.</h2>
+                <p className="muted">Search, locate and maintain your equipment.</p>
+                <div className="inventory-table">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Equipment</th>
+                        <th>Location</th>
+                        <th>Status</th>
+                        <th>Asset ID</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filtered.map((a) => (
+                        <tr key={a.id} onClick={() => choose(a.id)}>
+                          <td>
+                            <button className="text-button" onClick={() => choose(a.id)}>
+                              {iconFor(a.category, 17)}
+                              {a.name}
+                            </button>
+                          </td>
+                          <td>
+                            {a.site}
+                            <small>
+                              {a.room} · Floor {a.floor || "—"}
+                            </small>
+                          </td>
+                          <td>
+                            <span className={"badge " + a.status.replaceAll(" ", "-")}>{a.status}</span>
+                          </td>
+                          <td>{a.tag || "—"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {!filtered.length && (
+                    <div className="empty">No equipment to display. Add your first asset.</div>
+                  )}
+                </div>
+              </div>
+            )}
+            {view === "map" && !current && (
+              <div className="map-welcome">
+                <div className="mini-icon">
+                  <MapPin size={21} />
+                </div>
+                <p className="eyebrow">YOUR FIELD OPERATIONS, CONNECTED</p>
+                <h2>
+                  Know where.
+                  <br />
+                  <em>Get there.</em>
+                </h2>
+                <p>
+                  One clear path from the address
+                  <br />
+                  to the equipment you’re looking for.
+                </p>
+                <button className="primary" onClick={() => setPlanner(true)}>
+                  Place your first asset <Plus size={17} />
+                </button>
+              </div>
+            )}
+            {picking && (
+              <div className="pick-banner">
+                Click the equipment’s outdoor location on the map.
+                <button onClick={() => setPicking(false)}>Cancel</button>
+              </div>
+            )}
+            <div className="map-stats">
+              <div>
+                <b>{shown.length}</b>
+                <span>Total assets</span>
+              </div>
+              <div>
+                <b>{new Set(shown.map((a) => a.site)).size}</b>
+                <span>Locations</span>
+              </div>
+              <div>
+                <b className="amber">{shown.filter((a) => a.status === "Needs service").length}</b>
+                <span>Need attention</span>
+              </div>
+            </div>
+          </section>
+          {current && !picking && (
+            <aside className="detail">
+              <div className="detail-heading">
+                <span className="eyebrow">EQUIPMENT PROFILE</span>
+                <button
+                  className="icon-button"
+                  aria-label="Close equipment profile"
+                  onClick={() => setSelected("")}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+              <div className="equipment-hero">
+                <span className="large-equipment">{iconFor(current.category, 52)}</span>
+                <span className={"badge " + current.status.replaceAll(" ", "-")}>{current.status}</span>
+                <span className="hero-grid" />
+              </div>
+              <div className="detail-title">
+                <p className="eyebrow">
+                  {current.tag || "UNTAGGED"} / {current.category.toUpperCase()}
+                </p>
+                <h2>{current.name}</h2>
+                <p>
+                  <Building2 size={15} />
+                  {current.site}
+                </p>
+                <div className="detail-actions">
+                  <a
+                    className="primary"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    href={
+                      "https://www.google.com/maps/dir/?api=1&destination=" +
+                      encodeURIComponent(current.lat + "," + current.lng)
+                    }
+                  >
+                    <Navigation size={16} />
+                    Get directions
+                    <ArrowUpRight size={16} />
+                  </a>
+                  <button className="secondary" aria-label="QR label" onClick={showQR}>
+                    <QrCode size={19} />
+                  </button>
+                  <button
+                    className="secondary"
+                    aria-label="Edit equipment"
+                    onClick={() =>
+                      demo
+                        ? setNotice("Demo records are read-only. Add your own equipment to edit.")
+                        : setDraft(structuredClone(current))
+                    }
+                  >
+                    <Pencil size={18} />
+                  </button>
+                </div>
+              </div>
+              <div className="tabs">
+                {["Guide", "Details", "Activity"].map((t) => (
+                  <button className={tab === t ? "active" : ""} key={t} onClick={() => setTab(t)}>
+                    {t}
+                  </button>
+                ))}
+              </div>
+              <div className="detail-content">
+                {tab === "Guide" && (
+                  <>
+                    <div className="section-label">FROM ARRIVAL TO EQUIPMENT</div>
+                    <div className="route-step">
+                      <span>1</span>
+                      <div>
+                        <h4>
+                          <Car size={15} />
+                          Arrive & park
+                        </h4>
+                        <p>{current.parking || "No parking instructions yet."}</p>
+                      </div>
+                    </div>
+                    <div className="route-step">
+                      <span>2</span>
+                      <div>
+                        <h4>
+                          <DoorOpen size={15} />
+                          Find your way inside
+                        </h4>
+                        <p>{current.entrance || "Add an entrance and route description."}</p>
+                      </div>
+                    </div>
+                    <div className="route-step last">
+                      <span>3</span>
+                      <div>
+                        <h4>
+                          <MapPin size={15} />
+                          You’re here
+                        </h4>
+                        <p>
+                          {current.room || "Room not specified"} · Floor {current.floor || "—"}
+                        </p>
+                      </div>
+                    </div>
+                    {current.plan && (
+                      <div className="floorplan-section">
+                        <div className="section-label">
+                          <Layers size={14} />
+                          INDOOR LOCATION · FLOOR {current.floor}
+                        </div>
+                        <div className="floorplan">
+                          <img src={imageUrl(current.plan)} alt="Uploaded floor plan" />
+                          <span
+                            className="plan-pin"
+                            style={{ left: current.pinX + "%", top: current.pinY + "%" }}
+                          >
+                            <MapPin size={22} />
+                          </span>
+                        </div>
+                        <small>Manually placed equipment pin</small>
+                      </div>
+                    )}
+                    <div className="section-label">VISUAL LANDMARKS</div>
+                    <div className="photo-grid">
+                      {["Entrance", "Route", "Equipment"].map((label) => {
+                        const p = current.photos.find((p) => p.label === label);
+                        return (
+                          <div key={label}>
+                            {p ? (
+                              <a href={imageUrl(p.key)} target="_blank" rel="noopener">
+                                <img src={imageUrl(p.key)} alt={label} />
+                              </a>
+                            ) : (
+                              <div className="photo-placeholder">
+                                <Camera size={20} />
+                              </div>
+                            )}
+                            <small>{label}</small>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {!current.photos.length && (
+                      <p className="muted small">Add three photos so the next visit is effortless.</p>
+                    )}
+                    {current.tourUrl && (
+                      <a
+                        className="tour-link"
+                        href={current.tourUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Open interior tour
+                        <ArrowUpRight size={17} />
+                      </a>
+                    )}
+                  </>
+                )}
+                {tab === "Details" && (
+                  <>
+                    <div className="section-label">ASSET INFORMATION</div>
+                    <dl>
+                      {[
+                        ["Business type", current.businessType || "Not specified"],
+                        ["Equipment type", current.equipmentType || current.category],
+                        ["Asset ID", current.tag],
+                        ["Model", current.model],
+                        ["Serial number", current.serial],
+                        ["Category", current.category],
+                        ["Address", current.address],
+                        ["Coordinates", `${current.lat.toFixed(6)}, ${current.lng.toFixed(6)}`],
+                      ].map(([k, v]) => (
+                        <div key={k}>
+                          <dt>{k}</dt>
+                          <dd>{v || "Not recorded"}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                    <h4>Notes</h4>
+                    <p className="note-text">{current.notes || "No notes yet."}</p>
+                    <button
+                      className="secondary full"
+                      disabled={busy || demo}
+                      onClick={() => runExport([current], true)}
+                    >
+                      <Download size={16} />
+                      Export Unreal reconstruction brief
+                    </button>
+                    <p className="muted small">
+                      Includes references and strict-reconstruction instructions. This does not generate a 3D
+                      model.
+                    </p>
+                    <button
+                      className="danger"
+                      disabled={busy || demo}
+                      onClick={async () => {
+                        if (
+                          !confirm(
+                            `Permanently delete ${current.name}? Download a backup first if needed. Uploaded files are retained, but the record cannot be restored without a backup.`,
+                          )
+                        )
+                          return;
+                        setBusy(true);
+                        try {
+                          const r = await fetch("/api/assets?id=" + current.id, { method: "DELETE" });
+                          if (!r.ok) throw new Error("Delete failed.");
+                          setAssets((prev) => prev.filter((a) => a.id !== current.id));
+                          setSelected("");
+                          setNotice("Asset record deleted. Restore from a backup if needed.");
+                        } catch (e) {
+                          setNotice((e as Error).message);
+                        } finally {
+                          setBusy(false);
+                        }
+                      }}
+                    >
+                      <Trash2 size={15} />
+                      Delete asset
+                    </button>
+                  </>
+                )}
+                {tab === "Activity" && (
+                  <>
+                    <div className="section-label">FIELD NOTES & SERVICE LOG</div>
+                    <form
+                      onSubmit={async (e) => {
+                        e.preventDefault();
+                        if (demo) return;
+                        const ok = await save({
+                          ...current,
+                          history: [
+                            { id: crypto.randomUUID(), date: new Date().toISOString(), text: activity },
+                            ...current.history,
+                          ],
+                        });
+                        if (ok) setActivity("");
+                      }}
+                    >
+                      <textarea
+                        aria-label="Service note"
+                        placeholder="What happened on this visit?"
+                        value={activity}
+                        onChange={(e) => setActivity(e.target.value)}
+                        maxLength={2000}
+                        required
+                      />
+                      <button className="primary full" disabled={busy || demo}>
+                        <Plus size={16} />
+                        Add field note
+                      </button>
+                    </form>
+                    {current.history.length ? (
+                      current.history.map((h) => (
+                        <article className="history-note" key={h.id}>
+                          <small>{new Date(h.date).toLocaleString()}</small>
+                          <p>{h.text}</p>
+                        </article>
+                      ))
+                    ) : (
+                      <div className="empty">
+                        <Activity size={25} />
+                        <p>No visits logged yet.</p>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </aside>
+          )}
+        </div>
+        {draft && !picking && (
+          <div className="modal-backdrop">
+            <section className="modal editor" role="dialog" aria-modal="true" aria-label="Equipment editor">
+              <div className="modal-header">
+                <div>
+                  <p className="eyebrow">BUILD YOUR LOCATION LIBRARY</p>
+                  <h2>{assets.some((a) => a.id === draft.id) ? "Edit equipment" : "Add equipment"}</h2>
+                </div>
+                <button
+                  className="icon-button"
+                  aria-label="Close editor"
+                  disabled={busy}
+                  onClick={() => {
+                    setDraft(null);
+                    setResults([]);
+                  }}
+                >
+                  <X />
+                </button>
+              </div>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  save(draft);
+                }}
+              >
+                <div className="editor-body">
+                  <h3>
+                    01 <span>The equipment</span>
+                  </h3>
+                  <div className="form-grid">
+                    {formField("Equipment name *", "name", "text", true)}
+                    {formField("Asset tag", "tag")}
+                    <label className="field">
+                      Category
+                      <select
+                        value={draft.category}
+                        onChange={(e) =>
+                          setDraft({ ...draft, category: e.target.value as Asset["category"] })
+                        }
+                      >
+                        {categories.slice(1).map((c) => (
+                          <option key={c}>{c}</option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="field">
+                      Status
+                      <select
+                        value={draft.status}
+                        onChange={(e) => setDraft({ ...draft, status: e.target.value as Asset["status"] })}
+                      >
+                        {["Operational", "Needs service", "Offline"].map((s) => (
+                          <option key={s}>{s}</option>
+                        ))}
+                      </select>
+                    </label>
+                    {formField("Business type", "businessType")}
+                    {formField("Specific equipment type", "equipmentType")}
+                    {formField("Model", "model")}
+                    {formField("Serial number", "serial")}
+                  </div>
+                  <h3>
+                    02 <span>The location</span>
+                  </h3>
+                  <div className="form-grid">
+                    {formField("Building / site name *", "site", "text", true)}
+                    {formField("Street address *", "address", "text", true)}
+                  </div>
+                  <div className="inline-actions">
+                    <button
+                      type="button"
+                      className="secondary"
+                      disabled={searching || draft.address.length < 3}
+                      onClick={() => locate(draft.address)}
+                    >
+                      <Search size={16} />
+                      Find address
+                    </button>
+                    <button
+                      type="button"
+                      className="secondary"
+                      onClick={() => {
+                        setView("map");
+                        setFocus(draft);
+                        setPicking(true);
+                        setResults([]);
+                      }}
+                    >
+                      <MapPin size={16} />
+                      Place pin on map
+                    </button>
+                  </div>
+                  <p className="muted small">
+                    Verify coordinates before saving. Initial coordinates point to central Des Moines.
+                  </p>
+                  <div className="form-grid">
+                    {formField("Latitude", "lat", "number", true)}
+                    {formField("Longitude", "lng", "number", true)}
+                    {formField("Floor", "floor")}
+                    {formField("Room / exact spot", "room")}
+                  </div>
+                  <h3>
+                    03 <span>The way inside</span>
+                  </h3>
+                  <label className="field">
+                    Parking instructions
+                    <textarea
+                      value={draft.parking}
+                      onChange={(e) => setDraft({ ...draft, parking: e.target.value })}
+                      maxLength={3000}
+                      placeholder="Where should the driver park?"
+                    />
+                  </label>
+                  <label className="field">
+                    Entrance & route to equipment
+                    <textarea
+                      value={draft.entrance}
+                      onChange={(e) => setDraft({ ...draft, entrance: e.target.value })}
+                      maxLength={3000}
+                      placeholder="Use the east entrance, check in, then…"
+                    />
+                  </label>
+                  <div className="upload-grid">
+                    {["Entrance", "Route", "Equipment"].map((label) => {
+                      const p = draft.photos.find((p) => p.label === label);
+                      return (
+                        <label key={label} className="upload-card">
+                          {p ? <img src={imageUrl(p.key)} alt={label} /> : <Camera size={24} />}
+                          <b>{label}</b>
+                          <small>{p ? "Replace photo" : "Add photo"}</small>
+                          <input
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp"
+                            disabled={busy}
+                            onChange={(e) => {
+                              if (e.target.files?.[0]) upload(e.target.files[0], label);
+                            }}
+                          />
+                        </label>
+                      );
+                    })}
+                  </div>
+                  <label className="secondary upload-plan">
+                    <Layers size={17} />
+                    {draft.plan ? "Replace floor plan" : "Upload floor plan image"}
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      disabled={busy}
+                      onChange={(e) => {
+                        if (e.target.files?.[0]) upload(e.target.files[0], "plan");
+                      }}
+                    />
+                  </label>
+                  {draft.plan && (
+                    <>
+                      <p className="muted small">
+                        Click the plan to place the equipment. Use arrow keys on the plan for fine
+                        adjustments.
+                      </p>
+                      <div
+                        className="floorplan editable"
+                        role="button"
+                        tabIndex={0}
+                        aria-label="Position equipment on floor plan using mouse or arrow keys"
+                        onKeyDown={(e) => {
+                          const move: Record<string, [number, number]> = {
+                            ArrowUp: [0, -1],
+                            ArrowDown: [0, 1],
+                            ArrowLeft: [-1, 0],
+                            ArrowRight: [1, 0],
+                          };
+                          if (move[e.key]) {
+                            e.preventDefault();
+                            setDraft({
+                              ...draft,
+                              pinX: Math.max(0, Math.min(100, draft.pinX + move[e.key][0])),
+                              pinY: Math.max(0, Math.min(100, draft.pinY + move[e.key][1])),
+                            });
+                          }
+                        }}
+                        onClick={(e) => {
+                          const r = e.currentTarget.getBoundingClientRect();
+                          setDraft({
+                            ...draft,
+                            pinX: ((e.clientX - r.left) / r.width) * 100,
+                            pinY: ((e.clientY - r.top) / r.height) * 100,
+                          });
+                        }}
+                      >
+                        <img src={imageUrl(draft.plan)} alt="Click to place equipment on floor plan" />
+                        <span className="plan-pin" style={{ left: draft.pinX + "%", top: draft.pinY + "%" }}>
+                          <MapPin size={24} />
+                        </span>
+                      </div>
+                    </>
+                  )}
+                  <label className="field">
+                    Notes
+                    <textarea
+                      value={draft.notes}
+                      maxLength={5000}
+                      onChange={(e) => setDraft({ ...draft, notes: e.target.value })}
+                    />
+                  </label>
+                  {formField("Hosted interior tour link (optional, HTTPS)", "tourUrl", "url")}
+                  <p className="muted small">
+                    Only upload photos and floor plans you have permission to use. Images: JPG, PNG or WebP,
+                    up to 8 MB each.
+                  </p>
+                </div>
+                <footer className="modal-footer">
+                  <span>Private cloud storage</span>
+                  <button
+                    type="button"
+                    className="secondary"
+                    disabled={busy}
+                    onClick={() => {
+                      setDraft(null);
+                      setResults([]);
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button className="primary" disabled={busy}>
+                    {busy ? <Loader2 size={17} className="spin" /> : <Check size={17} />}Save equipment
+                  </button>
+                </footer>
+              </form>
+            </section>
+          </div>
+        )}
+        {info && (
+          <div className="modal-backdrop">
+            <section
+              className="modal info-modal"
+              role="dialog"
+              aria-modal="true"
+              aria-label="About STV Locate"
+            >
+              <div className="modal-header">
+                <h2>
+                  Standalone today.
+                  <br />
+                  Connected tomorrow.
+                </h2>
+                <button className="icon-button" aria-label="Close information" onClick={() => setInfo(false)}>
+                  <X />
+                </button>
+              </div>
+              <div className="editor-body">
+                <p>
+                  STV Locate is your private equipment-location workspace. Records and images are saved in the
+                  cloud, not just in this browser.
+                </p>
+                <h3>
+                  <Link2 size={20} />
+                  Built for a future VendDoctorAi connection
+                </h3>
+                <p>
+                  Stable asset IDs, standard latitude/longitude, structured records and downloadable backups
+                  keep your data portable. VendDoctorAi is not connected yet; its API and account access will
+                  be needed for integration.
+                </p>
+                <h3>
+                  <Map size={20} />
+                  Aerial + indoor context
+                </h3>
+                <p>
+                  The lightweight aerial map uses the Esri imagery source selected by God’s Eye View; the
+                  original 3D adapter is retained in the source. Floor-plan pins and locations are manually
+                  recorded—not live GPS or automatically measured interiors.
+                </p>
+                <h3>
+                  <Box size={20} />
+                  Unreal reconstruction handoff
+                </h3>
+                <p>
+                  Export a single asset’s photos, details and strict-reconstruction brief for Unreal Home
+                  Wizard. Actual 3D reconstruction requires Unreal, reference review and rendering hardware.
+                  You do not need AWS to use this app.
+                </p>
+                <p className="muted">
+                  QR links require access to this private app. Team roles, device trackers and automatic 3D
+                  generation are not included in this first version.
+                </p>
+                <div className="credits">
+                  <a href="https://github.com/bilawalsidhu/gods-eye-view" target="_blank" rel="noopener">
+                    God’s Eye View ↗
+                  </a>
+                  <a href="/licenses/gods-eye-view.txt" target="_blank">
+                    MIT license
+                  </a>
+                  <a
+                    href="https://github.com/amirmushichge/unreal-home-wizard"
+                    target="_blank"
+                    rel="noopener"
+                  >
+                    Unreal Home Wizard ↗
+                  </a>
+                  <a href="/licenses/unreal-home-wizard.txt" target="_blank">
+                    Apache 2.0 license
+                  </a>
+                </div>
+              </div>
+            </section>
+          </div>
+        )}
+        {qr && current && (
+          <div className="modal-backdrop">
+            <section
+              className="modal qr-modal"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Equipment QR label"
+            >
+              <button className="icon-button qr-close" aria-label="Close QR label" onClick={() => setQr("")}>
+                <X />
+              </button>
+              <p className="eyebrow">STV LOCATE · EQUIPMENT LABEL</p>
+              <h2>{current.name}</h2>
+              <img src={qr} alt={"QR code for " + current.name} />
+              <strong>{current.tag || current.id}</strong>
+              <p className="muted">
+                Scan to open this equipment record.
+                <br />
+                Private app access is required.
+              </p>
+              <a className="primary" href={qr} download={"STV-" + (current.tag || current.id) + "-QR.png"}>
+                <Download size={17} />
+                Download QR label
+              </a>
+            </section>
+          </div>
+        )}
+        {notice && (
+          <div className="toast" role="status">
+            {notice}
+            {/sign in/i.test(notice) && (
+              <a href="/signin-with-chatgpt?return_to=%2F" target="_top">
+                Sign in again
+              </a>
+            )}
+            <button aria-label="Dismiss notification" onClick={() => setNotice("")}>
+              <X size={16} />
+            </button>
+          </div>
+        )}
+        {busy && !draft && (
+          <div className="busy-indicator">
+            <Loader2 className="spin" size={16} />
+            Working…
+          </div>
+        )}
+      </div>
+      {planner && (
+        <InventoryPlanner
+          assets={assets}
+          onSaved={(a) => {
+            setAssets((prev) => [a, ...prev.filter((x) => x.id !== a.id)]);
+            setDemo(false);
+          }}
+          onClose={() => setPlanner(false)}
+        />
+      )}
+    </main>
+  );
 }

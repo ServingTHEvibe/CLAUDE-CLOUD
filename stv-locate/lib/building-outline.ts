@@ -1,7 +1,68 @@
-import {z} from 'zod';
-export const pointSchema=z.object({lat:z.number().min(-85).max(85),lng:z.number().min(-180).max(180)});
-export type Point=z.infer<typeof pointSchema>;
-export function containsPoint(ring:Point[],p:Point){let inside=false;for(let i=0,j=ring.length-1;i<ring.length;j=i++){const a=ring[i],b=ring[j];if((a.lat>p.lat)!==(b.lat>p.lat)&&p.lng<(b.lng-a.lng)*(p.lat-a.lat)/(b.lat-a.lat)+a.lng)inside=!inside;}return inside;}
-export function validOutline(points:Point[]){if(points.length<3||points.length>200||new Set(points.map(p=>p.lat+','+p.lng)).size<3)return false;const base=points[0];if(points.some(p=>Math.abs(p.lat-base.lat)>.02||Math.abs(p.lng-base.lng)>.02))return false;let area=0;for(let i=0;i<points.length;i++){const a=points[i],b=points[(i+1)%points.length];area+=(a.lng-base.lng)*(b.lat-base.lat)-(b.lng-base.lng)*(a.lat-base.lat);}if(Math.abs(area)<1e-12)return false;const cross=(a:Point,b:Point,c:Point)=>(b.lng-a.lng)*(c.lat-a.lat)-(b.lat-a.lat)*(c.lng-a.lng);for(let i=0;i<points.length;i++)for(let j=i+1;j<points.length;j++){if(j===i+1||i===0&&j===points.length-1)continue;const a=points[i],b=points[(i+1)%points.length],c=points[j],d=points[(j+1)%points.length];if(cross(a,b,c)*cross(a,b,d)<0&&cross(c,d,a)*cross(c,d,b)<0)return false;}return true;}
-export const outlineSchema=z.object({source:z.enum(['osm','manual']),points:z.array(pointSchema).min(3).max(200).refine(validOutline,'Trace a valid building outline without crossing edges.')});
-export function footprintAt(data:unknown,point:Point){const elements=(data as {elements?:unknown[]})?.elements;if(!Array.isArray(elements))return null;for(const value of elements){const e=value as {tags?:{building?:string},geometry?:unknown[]};if(!e.tags?.building||!Array.isArray(e.geometry))continue;const parsed=z.array(pointSchema).min(4).max(201).safeParse(e.geometry);if(!parsed.success)continue;const points=parsed.data;const first=points[0],last=points[points.length-1];if(first.lat!==last.lat||first.lng!==last.lng)continue;points.pop();if(validOutline(points)&&containsPoint(points,point))return outlineSchema.parse({source:'osm',points});}return null;}
+import { z } from "zod";
+export const pointSchema = z.object({ lat: z.number().min(-85).max(85), lng: z.number().min(-180).max(180) });
+export type Point = z.infer<typeof pointSchema>;
+export function containsPoint(ring: Point[], p: Point) {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const a = ring[i],
+      b = ring[j];
+    if (
+      a.lat > p.lat !== b.lat > p.lat &&
+      p.lng < ((b.lng - a.lng) * (p.lat - a.lat)) / (b.lat - a.lat) + a.lng
+    )
+      inside = !inside;
+  }
+  return inside;
+}
+export function validOutline(points: Point[]) {
+  if (points.length < 3 || points.length > 200 || new Set(points.map((p) => p.lat + "," + p.lng)).size < 3)
+    return false;
+  const base = points[0];
+  if (points.some((p) => Math.abs(p.lat - base.lat) > 0.02 || Math.abs(p.lng - base.lng) > 0.02))
+    return false;
+  let area = 0;
+  for (let i = 0; i < points.length; i++) {
+    const a = points[i],
+      b = points[(i + 1) % points.length];
+    area += (a.lng - base.lng) * (b.lat - base.lat) - (b.lng - base.lng) * (a.lat - base.lat);
+  }
+  if (Math.abs(area) < 1e-12) return false;
+  const cross = (a: Point, b: Point, c: Point) =>
+    (b.lng - a.lng) * (c.lat - a.lat) - (b.lat - a.lat) * (c.lng - a.lng);
+  for (let i = 0; i < points.length; i++)
+    for (let j = i + 1; j < points.length; j++) {
+      if (j === i + 1 || (i === 0 && j === points.length - 1)) continue;
+      const a = points[i],
+        b = points[(i + 1) % points.length],
+        c = points[j],
+        d = points[(j + 1) % points.length];
+      if (cross(a, b, c) * cross(a, b, d) < 0 && cross(c, d, a) * cross(c, d, b) < 0) return false;
+    }
+  return true;
+}
+export const outlineSchema = z.object({
+  source: z.enum(["osm", "manual"]),
+  points: z
+    .array(pointSchema)
+    .min(3)
+    .max(200)
+    .refine(validOutline, "Trace a valid building outline without crossing edges."),
+});
+export function footprintAt(data: unknown, point: Point) {
+  const elements = (data as { elements?: unknown[] })?.elements;
+  if (!Array.isArray(elements)) return null;
+  for (const value of elements) {
+    const e = value as { tags?: { building?: string }; geometry?: unknown[] };
+    if (!e.tags?.building || !Array.isArray(e.geometry)) continue;
+    const parsed = z.array(pointSchema).min(4).max(201).safeParse(e.geometry);
+    if (!parsed.success) continue;
+    const points = parsed.data;
+    const first = points[0],
+      last = points[points.length - 1];
+    if (first.lat !== last.lat || first.lng !== last.lng) continue;
+    points.pop();
+    if (validOutline(points) && containsPoint(points, point))
+      return outlineSchema.parse({ source: "osm", points });
+  }
+  return null;
+}

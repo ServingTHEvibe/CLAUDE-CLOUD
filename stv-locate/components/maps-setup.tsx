@@ -1,11 +1,249 @@
-'use client';
-import {useEffect,useState} from 'react';
-import {saveGoogleKey,useGoogleKey,loadGoogleMaps,searchGoogleAddress} from '../lib/google-maps';
-import GoogleMap from './google-map';
-export default function MapsSetup(){
- const saved=useGoogleKey();const [key,setKey]=useState(''),[remember,setRemember]=useState(false),[message,setMessage]=useState(''),[error,setError]=useState(''),[busy,setBusy]=useState(false),[tested,setTested]=useState(''),[address,setAddress]=useState(''),[results,setResults]=useState<any[]>([]),[focus,setFocus]=useState<{lat:number,lng:number,zoom:number}|null>(null),[threeD,setThreeD]=useState(false);
- useEffect(()=>{const failed=()=>{setTested('');setError('Google rejected this key. Check billing, enabled APIs and the website restriction.');};window.addEventListener('stv-google-auth-error',failed);return()=>window.removeEventListener('stv-google-auth-error',failed);},[]);
- async function connect(){setError('');setMessage('');setBusy(true);try{const candidate=key.trim()||saved;if(!candidate)throw Error('Paste your Google Maps browser key first.');saveGoogleKey(candidate,remember);setKey('');await loadGoogleMaps(candidate);setTested(candidate);setMessage('Maps JavaScript API connected. Use the preview and test your address below.');}catch(e){setError((e as Error).message);}finally{setBusy(false);}}
- async function find(){setError('');setResults([]);setBusy(true);try{const found=await searchGoogleAddress(saved,address);setResults(found);if(!found.length)setError('No matching address. Check the complete street address, city, state and ZIP.');}catch(e){setError((e as Error).message);}finally{setBusy(false);}}
- return <main className="maps-setup"><a href="/">← Back to equipment</a><p className="eyebrow">STV LOCATE · MAPS SETUP</p><h1>Connect your Google Maps.</h1><p>Search physical addresses, inspect satellite imagery and open photorealistic 3D buildings where available.</p><section><h2>1. Check your Google key</h2><p>Enable and allow <b>Maps JavaScript API</b> and <b>Geocoding API</b>. This browser integration also provides 3D through Maps JavaScript API; Map Tiles API is not required.</p><p>Choose <b>Websites</b> and allow:</p><code>https://stv-locate.brannu5235.chatgpt.site/*</code><p>Billing must be enabled. Google usage is billed to your Cloud project.</p><a href="https://console.cloud.google.com/google/maps-apis/credentials" target="_blank" rel="noopener noreferrer">Open Google Cloud credentials ↗</a></section><section><h2>2. Enter your browser key</h2><p>Use a website-restricted browser key. Browser map keys are visible to the browser; never enter a private server key here. This setup applies to this browser only.</p><form onSubmit={e=>{e.preventDefault();void connect();}}><label className="field">Google Maps browser API key<input type="password" autoComplete="off" spellCheck={false} placeholder={saved?'A key is saved. Paste a replacement if needed.':'AIza…'} value={key} onChange={e=>setKey(e.target.value)}/></label><label className="position-confirmation"><input type="checkbox" checked={remember} onChange={e=>setRemember(e.target.checked)}/>Remember this key on this device</label><small>Unchecked: the key lasts for this browser tab session. It is excluded from equipment records and backups.</small><div className="maps-setup-actions"><button className="primary" disabled={busy}>Save & connect Google Maps</button>{saved&&<button type="button" className="secondary" disabled={busy} onClick={()=>{saveGoogleKey('',false);setTested('');setResults([]);setFocus(null);setMessage('Key removed from this browser. Reload before entering a different key.');}}>Remove saved key</button>}</div></form>{saved&&<p>A browser key is saved. {tested===saved?'JavaScript connection checked.':'Connection has not been checked in this visit.'}</p>}{message&&<p role="status">{message}</p>}{error&&<p role="alert" className="maps-setup-error">{error}</p>}<p className="small">Replacing a key after Google has loaded requires <button type="button" className="text-button" onClick={()=>window.location.reload()}>reloading this page</button>.</p></section>{saved&&<section><h2>3. Test your real address</h2><form onSubmit={e=>{e.preventDefault();void find();}}><label className="field">Address to test<input required minLength={3} maxLength={250} value={address} onChange={e=>{setAddress(e.target.value);setResults([]);setFocus(null);}} placeholder="Street address, city, state, ZIP"/></label><button className="primary" disabled={busy}>Find my address with Google</button></form><div className="building-results">{results.map(r=><button key={r.place_id} onClick={()=>setFocus({lat:Number(r.lat),lng:Number(r.lon),zoom:r.location_hint==='building_address'?230:3500})}>{r.display_name} · {r.location_hint==='building_address'?'Rooftop result':'Approximate / partial result — verify carefully'}</button>)}</div><p>Address results from Google Maps. Select a result to inspect it. This test saves no buildings or equipment.</p><div className="maps-setup-actions"><button className="secondary" aria-pressed={!threeD} onClick={()=>setThreeD(false)}>Satellite</button><button className="secondary" aria-pressed={threeD} onClick={()=>setThreeD(true)}>God’s Eye · Google 3D</button></div><div className="maps-test-preview"><GoogleMap apiKey={saved} threeD={threeD} assets={[]} selected="" onSelect={()=>{}} onPick={()=>{}} focus={focus} picking={false} onUnavailable={()=>{setThreeD(false);setError('Google 3D could not initialize on this device. Satellite mode remains available.');}}/></div><p>Confirm the building visually. Google can return approximate locations, and 3D coverage varies.</p><a className="primary" href="/">Continue to add equipment →</a></section>}<footer><a href="/maps-terms">Maps terms & privacy</a></footer></main>;
+"use client";
+import { useEffect, useState } from "react";
+import { saveGoogleKey, useGoogleKey, loadGoogleMaps, searchGoogleAddress } from "../lib/google-maps";
+import GoogleMap from "./google-map";
+export default function MapsSetup() {
+  const saved = useGoogleKey();
+  const [key, setKey] = useState(""),
+    [remember, setRemember] = useState(false),
+    [message, setMessage] = useState(""),
+    [error, setError] = useState(""),
+    [busy, setBusy] = useState(false),
+    [tested, setTested] = useState(""),
+    [address, setAddress] = useState(""),
+    [results, setResults] = useState<any[]>([]),
+    [focus, setFocus] = useState<{ lat: number; lng: number; zoom: number } | null>(null),
+    [threeD, setThreeD] = useState(false);
+  useEffect(() => {
+    const failed = () => {
+      setTested("");
+      setError("Google rejected this key. Check billing, enabled APIs and the website restriction.");
+    };
+    window.addEventListener("stv-google-auth-error", failed);
+    return () => window.removeEventListener("stv-google-auth-error", failed);
+  }, []);
+  async function connect() {
+    setError("");
+    setMessage("");
+    setBusy(true);
+    try {
+      const candidate = key.trim() || saved;
+      if (!candidate) throw Error("Paste your Google Maps browser key first.");
+      saveGoogleKey(candidate, remember);
+      setKey("");
+      await loadGoogleMaps(candidate);
+      setTested(candidate);
+      setMessage("Maps JavaScript API connected. Use the preview and test your address below.");
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function find() {
+    setError("");
+    setResults([]);
+    setBusy(true);
+    try {
+      const found = await searchGoogleAddress(saved, address);
+      setResults(found);
+      if (!found.length)
+        setError("No matching address. Check the complete street address, city, state and ZIP.");
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <main className="maps-setup">
+      <a href="/">← Back to equipment</a>
+      <p className="eyebrow">STV LOCATE · MAPS SETUP</p>
+      <h1>Connect your Google Maps.</h1>
+      <p>
+        Search physical addresses, inspect satellite imagery and open photorealistic 3D buildings where
+        available.
+      </p>
+      <section>
+        <h2>1. Check your Google key</h2>
+        <p>
+          Enable and allow <b>Maps JavaScript API</b> and <b>Geocoding API</b>. This browser integration also
+          provides 3D through Maps JavaScript API; Map Tiles API is not required.
+        </p>
+        <p>
+          Choose <b>Websites</b> and allow:
+        </p>
+        <code>https://stv-locate.brannu5235.chatgpt.site/*</code>
+        <p>Billing must be enabled. Google usage is billed to your Cloud project.</p>
+        <a
+          href="https://console.cloud.google.com/google/maps-apis/credentials"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Open Google Cloud credentials ↗
+        </a>
+      </section>
+      <section>
+        <h2>2. Enter your browser key</h2>
+        <p>
+          Use a website-restricted browser key. Browser map keys are visible to the browser; never enter a
+          private server key here. This setup applies to this browser only.
+        </p>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            void connect();
+          }}
+        >
+          <label className="field">
+            Google Maps browser API key
+            <input
+              type="password"
+              autoComplete="off"
+              spellCheck={false}
+              placeholder={saved ? "A key is saved. Paste a replacement if needed." : "AIza…"}
+              value={key}
+              onChange={(e) => setKey(e.target.value)}
+            />
+          </label>
+          <label className="position-confirmation">
+            <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
+            Remember this key on this device
+          </label>
+          <small>
+            Unchecked: the key lasts for this browser tab session. It is excluded from equipment records and
+            backups.
+          </small>
+          <div className="maps-setup-actions">
+            <button className="primary" disabled={busy}>
+              Save & connect Google Maps
+            </button>
+            {saved && (
+              <button
+                type="button"
+                className="secondary"
+                disabled={busy}
+                onClick={() => {
+                  saveGoogleKey("", false);
+                  setTested("");
+                  setResults([]);
+                  setFocus(null);
+                  setMessage("Key removed from this browser. Reload before entering a different key.");
+                }}
+              >
+                Remove saved key
+              </button>
+            )}
+          </div>
+        </form>
+        {saved && (
+          <p>
+            A browser key is saved.{" "}
+            {tested === saved
+              ? "JavaScript connection checked."
+              : "Connection has not been checked in this visit."}
+          </p>
+        )}
+        {message && <p role="status">{message}</p>}
+        {error && (
+          <p role="alert" className="maps-setup-error">
+            {error}
+          </p>
+        )}
+        <p className="small">
+          Replacing a key after Google has loaded requires{" "}
+          <button type="button" className="text-button" onClick={() => window.location.reload()}>
+            reloading this page
+          </button>
+          .
+        </p>
+      </section>
+      {saved && (
+        <section>
+          <h2>3. Test your real address</h2>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              void find();
+            }}
+          >
+            <label className="field">
+              Address to test
+              <input
+                required
+                minLength={3}
+                maxLength={250}
+                value={address}
+                onChange={(e) => {
+                  setAddress(e.target.value);
+                  setResults([]);
+                  setFocus(null);
+                }}
+                placeholder="Street address, city, state, ZIP"
+              />
+            </label>
+            <button className="primary" disabled={busy}>
+              Find my address with Google
+            </button>
+          </form>
+          <div className="building-results">
+            {results.map((r) => (
+              <button
+                key={r.place_id}
+                onClick={() =>
+                  setFocus({
+                    lat: Number(r.lat),
+                    lng: Number(r.lon),
+                    zoom: r.location_hint === "building_address" ? 230 : 3500,
+                  })
+                }
+              >
+                {r.display_name} ·{" "}
+                {r.location_hint === "building_address"
+                  ? "Rooftop result"
+                  : "Approximate / partial result — verify carefully"}
+              </button>
+            ))}
+          </div>
+          <p>
+            Address results from Google Maps. Select a result to inspect it. This test saves no buildings or
+            equipment.
+          </p>
+          <div className="maps-setup-actions">
+            <button className="secondary" aria-pressed={!threeD} onClick={() => setThreeD(false)}>
+              Satellite
+            </button>
+            <button className="secondary" aria-pressed={threeD} onClick={() => setThreeD(true)}>
+              God’s Eye · Google 3D
+            </button>
+          </div>
+          <div className="maps-test-preview">
+            <GoogleMap
+              apiKey={saved}
+              threeD={threeD}
+              assets={[]}
+              selected=""
+              onSelect={() => {}}
+              onPick={() => {}}
+              focus={focus}
+              picking={false}
+              onUnavailable={() => {
+                setThreeD(false);
+                setError("Google 3D could not initialize on this device. Satellite mode remains available.");
+              }}
+            />
+          </div>
+          <p>
+            Confirm the building visually. Google can return approximate locations, and 3D coverage varies.
+          </p>
+          <a className="primary" href="/">
+            Continue to add equipment →
+          </a>
+        </section>
+      )}
+      <footer>
+        <a href="/maps-terms">Maps terms & privacy</a>
+      </footer>
+    </main>
+  );
 }
