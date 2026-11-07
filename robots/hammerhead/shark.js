@@ -216,16 +216,16 @@ function screw(p, n, parent) {
 // ------------------------------------------------------------------ body profile
 // s, vertical radius, lateral radius, centre y
 const KN = [
-  [-0.035, 0.06, 0.1, -0.16],
-  [-0.015, 0.22, 0.32, -0.14],
-  [0.0, 0.3, 0.42, -0.12],
-  [0.03, 0.4, 0.52, -0.12],
-  [0.08, 0.56, 0.64, -0.06],
-  [0.15, 0.73, 0.75, 0.03],
-  [0.25, 0.89, 0.83, 0.06],
-  [0.36, 0.95, 0.84, 0.08],
-  [0.47, 0.86, 0.74, 0.09],
-  [0.56, 0.68, 0.57, 0.11],
+  [-0.035, 0.08, 0.12, -0.32],
+  [-0.015, 0.24, 0.34, -0.3],
+  [0.0, 0.33, 0.44, -0.27],
+  [0.03, 0.43, 0.54, -0.22],
+  [0.08, 0.58, 0.65, -0.12],
+  [0.15, 0.82, 0.8, 0.02],
+  [0.25, 1.02, 0.9, 0.04],
+  [0.36, 1.1, 0.92, 0.05],
+  [0.47, 1.0, 0.82, 0.07],
+  [0.56, 0.78, 0.62, 0.1],
   [0.64, 0.52, 0.43, 0.14],
   [0.73, 0.4, 0.31, 0.18],
   [0.82, 0.3, 0.23, 0.22],
@@ -440,47 +440,106 @@ export function buildShark() {
   root.add(body);
   const parts = { root, body, tail: [], fins: {}, head: null };
 
-  // ---- torso shells
-  const shell = (geo, parent = body) => mesh(geo, M.shell, parent);
-  const sSpans = { dorsal: [[-0.03, 0.2], [0.205, 0.33], [0.335, 0.45], [0.455, 0.6]], belly: [[0.125, 0.3], [0.305, 0.45], [0.455, 0.6]] };
-  sSpans.dorsal.forEach(([a, b]) => shell(bodyPatch(a, b, -0.62, 0.62)));
-  sSpans.belly.forEach(([a, b]) => shell(bodyPatch(a, b, Math.PI - 0.95, Math.PI + 0.95)));
-  const UP = [0.64, 1.42], LO = [1.44, 2.17];
-  const SIDE = [0.64, 2.17];
-  // shoulder shell (upper + lower), ribs that wrap the flank, two cover plates
-  const sidePanels = [
-    [-0.03, 0.145, ...UP], [0.215, 0.25, ...UP], [-0.03, 0.13, 1.44, 1.93], [0.13, 0.2, ...LO], [0.2, 0.25, 1.44, 1.9],
-    [0.336, 0.35, ...SIDE], [0.465, 0.479, ...SIDE],
-    [0.5, 0.6, 0.64, 1.08],
-  ];
-  // windows: each bay split upper / lower so the mechanism has two levels of depth
+  // ---- torso plates (round 3): 3 sizes, gaps of ~0.09 over the mechanism, every plate bulged
+  const GAP = 0.045;
+  const plateP = (s0, s1, a0, a1, { bulge = 0.035, parent = body, xoff = 0, t = 0.045, gap = GAP, rv = true } = {}) => {
+    const pr = prof((s0 + s1) / 2);
+    const ds = gap / L, da = gap / Math.max(0.2, (pr.ry + pr.rz) / 2);
+    const S0 = s0 + ds, S1 = s1 - ds, A0 = a0 + da, A1 = a1 - da;
+    if (S1 <= S0 || A1 <= A0) return null;
+    const bl = (u, v) => bulge * Math.pow(Math.max(0, Math.sin(Math.PI * u) * Math.sin(Math.PI * v)), 0.6);
+    const f = (u, v) => {
+      const ss = S0 + (S1 - S0) * u, aa = A0 + (A1 - A0) * v;
+      return bodyPt(ss, aa, 1, xoff).addScaledVector(bodyNormal(ss, aa), bl(u, v));
+    };
+    const nu = Math.max(3, Math.ceil((S1 - S0) * L * 9)), nv = Math.max(4, Math.ceil((A1 - A0) * 9));
+    const m = mesh(paramSlab(f, nu, nv, t, 1), M.shell, parent);
+    const big = (S1 - S0) * L > 0.5 && (A1 - A0) > 0.4;
+    if (rv && big) for (const [u, v] of [[0.08, 0.12], [0.92, 0.12], [0.92, 0.88], [0.08, 0.88]]) {
+      const ss = S0 + (S1 - S0) * u, aa = A0 + (A1 - A0) * v;
+      screw(f(u, v).addScaledVector(bodyNormal(ss, aa), 0.004), bodyNormal(ss, aa), parent);
+    }
+    return m;
+  };
+  const sym = (s0, s1, a0, a1, o) => { plateP(s0, s1, a0, a1, o); plateP(s0, s1, -a1, -a0, o); };
+  const rowS = (cuts, a0, a1, o) => { for (let i = 0; i < cuts.length - 1; i++) sym(cuts[i], cuts[i + 1], a0, a1, o); };
+  // dorsal row across the spine: big, medium and small plates in turn
+  const dCuts = [-0.03, 0.09, 0.2, 0.25, 0.33, 0.41, 0.46, 0.53, 0.6];
+  for (let i = 0; i < dCuts.length - 1; i++) plateP(dCuts[i], dCuts[i + 1], -0.55, 0.55, { bulge: 0.05 });
+  // belly row
+  [0.13, 0.25, 0.32, 0.43, 0.6].reduce((a0, a1) => (plateP(a0, a1, 2.3, TAU - 2.3, { bulge: 0.04 }), a1));
+  // shoulder: upper, middle and lower rows, each cut differently
+  rowS([-0.03, 0.07, 0.15], 0.55, 1.2, { bulge: 0.05 });
+  sym(0.2, 0.25, 0.55, 1.0, {});
+  rowS([-0.03, 0.04, 0.13, 0.2], 1.2, 1.75, { bulge: 0.04 });
+  sym(-0.03, 0.13, 1.75, 1.95, { bulge: 0.02, rv: false }); // the lip the upper teeth hang from
+  rowS([0.13, 0.2, 0.25], 1.75, 2.3, { bulge: 0.03 });
+  // ribs wrapping the flank, and a few cover plates inside the bays
+  sym(0.326, 0.355, 0.55, 2.3, { gap: 0.02, bulge: 0.02 });
+  sym(0.458, 0.487, 0.55, 2.3, { gap: 0.02, bulge: 0.02 });
+  sym(0.5, 0.6, 0.55, 1.05, { bulge: 0.05 });
+  sym(0.25, 0.3, 1.85, 2.3, {});
+  sym(0.38, 0.43, 1.95, 2.3, {});
+  sym(0.2, 0.25, 1.85, 2.3, {});
+  sym(0.2, 0.262, 1.2, 1.85, { bulge: 0.04 });
   const wins = [
-    [0.145, 0.215, 0.64, 1.42],
-    [0.25, 0.336, 0.64, 1.42], [0.25, 0.336, 1.44, 2.17], [0.2, 0.25, 1.92, 2.17],
-    [0.35, 0.465, 0.64, 1.42], [0.35, 0.465, 1.44, 2.17],
-    [0.479, 0.6, 1.1, 1.42], [0.479, 0.6, 1.44, 2.17],
+    [0.15, 0.2, 0.6, 1.2],
+    [0.25, 0.326, 0.6, 1.2], [0.262, 0.326, 1.2, 1.85],
+    [0.355, 0.458, 0.6, 1.2], [0.355, 0.458, 1.2, 2.25],
+    [0.487, 0.6, 1.05, 1.75], [0.487, 0.6, 1.75, 2.25],
   ];
-  const upperPanels = [[0.035, 0.25], [0.33, 0.352], [0.462, 0.482]];
-  const lowerPanels = [[0.035, 0.2], [0.33, 0.352], [0.462, 0.482]];
-  for (const side of [1, -1]) {
-    const A = (a0, a1) => (side > 0 ? [a0, a1] : [-a1, -a0]);
-    sidePanels.forEach(([s0, s1, a0, a1]) => shell(bodyPatch(s0, s1, ...A(a0, a1))));
-  }
   // dark inner mass
   mesh(bodyPatch(-0.03, 0.605, 0, TAU, { k: 0.8, t: 0 }), M.dark, body);
 
-  // screws along panel edges (gray, small, on seams)
-  const screwRow = (s, a0, a1, n) => {
-    for (let i = 0; i < n; i++) {
-      const a = a0 + ((i + 0.5) / n) * (a1 - a0);
-      screw(bodyPt(s, a, 1.002), bodyNormal(s, a), body);
-    }
+  // kitbash layer between the core and the plates, so every gap shows machine (merged per material)
+  const kitShop = () => {
+    const bins = new Map();
+    let place = new THREE.Matrix4();
+    const add = (geo, mat, local) => {
+      const g = geo.clone();
+      if (local) g.applyMatrix4(local);
+      g.applyMatrix4(place);
+      if (g.index) { const n = g.toNonIndexed(); g.dispose(); bins.has(mat) || bins.set(mat, []); bins.get(mat).push(n); return; }
+      bins.has(mat) || bins.set(mat, []);
+      bins.get(mat).push(g);
+    };
+    const T = (x, y, z) => new THREE.Matrix4().makeTranslation(x, y, z);
+    const cyl = (r, h) => new THREE.CylinderGeometry(r, r, h, 10).rotateZ(Math.PI / 2);
+    const types = [
+      (k) => { add(cyl(0.05 * k, 0.22 * k), M.dark, T(0, 0.05 * k, 0)); add(cyl(0.02 * k, 0.2 * k), M.steel, T(0.2 * k, 0.05 * k, 0)); },
+      (k) => add(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([V(-0.2 * k, 0, 0), V(-0.06 * k, 0.12 * k, 0.05 * k), V(0.1 * k, 0.13 * k, 0.1 * k), V(0.22 * k, 0, 0.12 * k)]), 10, 0.024 * k, 6), M.rubber),
+      (k) => { add(new THREE.BoxGeometry(0.3 * k, 0.03 * k, 0.2 * k), M.gear, T(0, 0.015 * k, 0)); for (let i = 0; i < 4; i++) add(new THREE.BoxGeometry(0.05 * k, 0.03 * k, 0.05 * k), M.dark, T((-0.08 + (i % 2) * 0.12) * k, 0.04 * k, (i < 2 ? -0.05 : 0.05) * k)); },
+      (k) => { add(gearGeo(0.1 * k, 12 + Math.floor(rand() * 6), 0.035 * k).clone().rotateX(Math.PI / 2), rand() < 0.3 ? M.gearHi : M.gear, T(0, 0.03 * k, 0)); },
+      (k) => { add(new THREE.BoxGeometry(0.12 * k, 0.09 * k, 0.1 * k), rand() < 0.5 ? M.dark : M.gear, T(0, 0.045 * k, 0)); add(new THREE.CylinderGeometry(0.02 * k, 0.02 * k, 0.04 * k, 6), M.steel, T(0.02 * k, 0.1 * k, 0)); },
+      (k) => { add(cyl(0.06 * k, 0.15 * k), M.gearHi, T(0, 0.06 * k, 0)); add(cyl(0.07 * k, 0.035 * k), M.dark, T(0.09 * k, 0.06 * k, 0)); },
+    ];
+    let n = 0;
+    return {
+      drop(p, nrm, k) {
+        const q = new THREE.Quaternion().setFromUnitVectors(V(0, 1, 0), nrm.clone().normalize());
+        q.multiply(new THREE.Quaternion().setFromAxisAngle(V(0, 1, 0), rand() * TAU));
+        place = new THREE.Matrix4().compose(p, q, V(1, 1, 1));
+        types[Math.floor(rand() * types.length)](k);
+        n++;
+      },
+      into(parent) {
+        for (const [mat, list] of bins) {
+          const clean = list.map((g) => { for (const key of Object.keys(g.attributes)) if (key !== 'position' && key !== 'normal') g.deleteAttribute(key); return g; });
+          mesh(mergeGeometries(clean), mat, parent);
+        }
+        stats.small += n;
+      },
+    };
   };
-  for (const side of [1, -1]) {
-    upperPanels.forEach(([s0, s1]) => { screwRow(s0 + 0.007, side * 0.7, side * 1.32, 3); screwRow(s1 - 0.007, side * 0.7, side * 1.32, 3); });
-    lowerPanels.forEach(([s0, s1]) => { screwRow(s1 - 0.007, side * 1.46, side * 2.1, 3); });
+  {
+    const k = kitShop();
+    for (let i = 0; i < 520; i++) {
+      const ss = rr(-0.02, 0.6), aa = rr(0, TAU);
+      if (ss < 0.15 && Math.abs(Math.abs(aa - Math.PI) - 0) < 1.35) continue; // keep the mouth clean
+      k.drop(bodyPt(ss, aa, rr(0.8, 0.84)), bodyNormal(ss, aa), rr(0.6, 1.05));
+    }
+    k.into(body);
   }
-  sSpans.dorsal.forEach(([, b]) => screwRow(b - 0.006, -0.5, 0.5, 4));
 
   // ---- window mechanism (both sides)
   const fillWindow = (s0, s1, a0, a1, parent, xoff = 0) => {
@@ -537,13 +596,30 @@ export function buildShark() {
   parts.head = neck;
   const hs = (geo) => mesh(geo, M.shell, head);
   const P = Math.PI;
-  const cutsU = [-1, -0.62, -0.22, 0, 0.22, 0.62, 1];
+  // round 3: hammer in plates of 3 sizes with gaps (~0.09) over the head's machine
+  const cutsU = [-1, -0.7, -0.46, -0.22, 0, 0.22, 0.46, 0.7, 1];
+  const gU = 0.016, gT = 0.07;
+  const bands = [[-0.5 * P, 0.06 * P], [0.06 * P, 0.36 * P], [0.36 * P, 0.74 * P], [0.74 * P, 1.1 * P], [1.1 * P, 1.5 * P]];
   for (let i = 0; i < cutsU.length - 1; i++) {
-    const g0 = cutsU[i] + (i ? 0.006 : 0), g1 = cutsU[i + 1] - (i < cutsU.length - 2 ? 0.006 : 0);
-    hs(headPatch(g0, g1, -0.5 * P, 0.36 * P));
-    hs(headPatch(g0, g1, 0.74 * P, 1.5 * P));
-    const win = Math.abs(cutsU[i]) + Math.abs(cutsU[i + 1]) > 0.5 && Math.abs(cutsU[i]) <= 0.62 && Math.abs(cutsU[i + 1]) <= 0.62;
-    if (!win) hs(headPatch(g0, g1, 0.36 * P + 0.01, 0.74 * P - 0.01));
+    const u0 = cutsU[i], u1 = cutsU[i + 1];
+    const g0 = u0 + (i ? gU : 0), g1 = u1 - (i < cutsU.length - 2 ? gU : 0);
+    bands.forEach(([t0, t1], bi) => {
+      const win = bi === 2 && Math.abs(u0) <= 0.7 && Math.abs(u1) <= 0.7 && Math.max(Math.abs(u0), Math.abs(u1)) > 0.22;
+      if (win) return;
+      // merge pairs on the underside so plates come in different sizes
+      if (bi === 4 && i % 2 === 1) return;
+      const g1b = bi === 4 && i < cutsU.length - 2 ? cutsU[Math.min(i + 2, cutsU.length - 1)] - (i + 2 < cutsU.length - 1 ? gU : 0) : g1;
+      hs(headPatch(g0, g1b, t0 + gT / 2, t1 - gT / 2));
+    });
+  }
+  {
+    const k = kitShop();
+    for (let i = 0; i < 160; i++) {
+      const U = rr(-0.97, 0.97), th = rr(0, TAU);
+      const p = headPt(U, th, 0.8);
+      k.drop(p, p.clone().sub(headPt(U, th, 0.4)), rr(0.3, 0.5));
+    }
+    k.into(head);
   }
   // head interior + window mechanism
   mesh(paramSlab((u, v) => headPt(-1 + 2 * u, v * TAU, 0.82), 40, 24, 0, -1), M.dark, head);
@@ -613,7 +689,6 @@ export function buildShark() {
     const hp = bodyPt(hingeS - 0.005, side * 2.0, 0.9);
     gear(hp, bodyNormal(hingeS, side * 2.0), 0.15, body, { th: 0.05 });
     piston(hp.clone().add(V(0.05, 0.05, 0)), bodyPt(0.03, side * 2.05, 0.88), 0.028, body);
-    hose([bodyPt(hingeS, side * 2.1, 0.85), bodyPt(0.08, side * 2.25, 0.92), bodyPt(0.0, side * 2.4, 0.85)], 0.024, body);
     // green gill marks (edge lines on the cheek)
     for (let q = 0; q < 3; q++) {
       const s = 0.15 + q * 0.016, a = side * 1.86;
@@ -634,9 +709,9 @@ export function buildShark() {
     f.userData.q0 = f.quaternion.clone();
     return f;
   };
-  addFin(DORSAL, { tip: 4, lead: [0, 4], rims: [[3, 5]], sparW: 0.16, scale: 0.86 }, bodyPt(0.37, 0, 0.97), V(1, 0, 0), V(-0.08, 1, 0.04), body, 'dorsal');
-  addFin(PECT, { tip: 4, lead: [0, 4], rims: [[3, 5]], sparW: 0.15, scale: 0.84 }, bodyPt(0.205, 1.98, 0.95), V(1, 0.05, 0.1), V(0.55, -0.7, 0.45), body, 'pectR');
-  addFin(PECT, { tip: 4, lead: [0, 4], rims: [[3, 5]], sparW: 0.14, scale: 0.8 }, bodyPt(0.215, -1.95, 0.95), V(1, 0.1, -0.16), V(-0.45, -0.62, -0.64), body, 'pectL');
+  addFin(DORSAL, { tip: 4, lead: [0, 4], rims: [[3, 5]], sparW: 0.16, scale: 0.8 }, bodyPt(0.37, 0, 0.97), V(1, 0, 0), V(-0.08, 1, 0.04), body, 'dorsal');
+  addFin(PECT, { tip: 4, lead: [0, 4], rims: [[3, 5]], sparW: 0.15, scale: 0.78 }, bodyPt(0.205, 1.98, 0.95), V(1, 0.05, 0.1), V(0.55, -0.7, 0.45), body, 'pectR');
+  addFin(PECT, { tip: 4, lead: [0, 4], rims: [[3, 5]], sparW: 0.14, scale: 0.68 }, bodyPt(0.215, -1.95, 0.95), V(1, 0.1, -0.16), V(-0.45, -0.62, -0.64), body, 'pectL');
   addFin(SMALL, { tip: 2, lead: [0, 2], rims: [[2, 3]], scale: 0.95, sparW: 0.08 }, bodyPt(0.55, Math.PI - 0.55, 0.95), V(1, 0, 0), V(-0.35, -0.8, 0.45), body, 'pelvR');
   addFin(SMALL, { tip: 2, lead: [0, 2], rims: [[2, 3]], scale: 0.85, sparW: 0.08 }, bodyPt(0.56, -(Math.PI - 0.55), 0.95), V(1, 0, 0), V(-0.25, -0.85, -0.5), body, 'pelvL');
 
@@ -688,7 +763,7 @@ export function buildShark() {
   mesh(new THREE.SphereGeometry(Math.min(pr.ry, pr.rz) * 1.05, 20, 14), M.dark, cg).position.y = pr.cy;
   const ring = mesh(new THREE.TorusGeometry(Math.min(pr.ry, pr.rz) * 0.9, 0.016, 8, 32), M.green, cg);
   ring.position.set(0.06, pr.cy, 0); ring.rotation.y = Math.PI / 2;
-  const cf = makeFin(CAUDAL, { tip: 4, lead: [0, 4], rims: [[4, 5], [10, 11]], sparW: 0.22, scale: 0.9 });
+  const cf = makeFin(CAUDAL, { tip: 4, lead: [0, 4], rims: [[4, 5], [10, 11]], sparW: 0.22, scale: 0.8 });
   cf.position.set(0.05, pr.cy, 0);
   cf.quaternion.copy(finBasis(V(1, 0, 0.04), V(0, 1, 0)));
   cg.add(cf);

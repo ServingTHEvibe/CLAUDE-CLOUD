@@ -55,3 +55,30 @@ length L = 1718 px, measured off the reference.
 | 12 | no | shadow falls out of frame |
 | 13 | yes, on the line | 0.065 vs 0.081 = 0.80 |
 | 14 | no | reads as a white torpedo with one black band |
+
+## Round 3 grades (round3.png, luma < 80)
+
+What changed: a ~680-part kitbash layer under every shell (merged per material). Torso and
+hammer re-tiled into plates in 3 sizes with ~0.09 gaps and bulged middles. Body deepened to
+max ry 1.1. Chin dropped so the grin sits under the hammer. Camera higher with the nose
+tilted down 0.06 rad. Near pectoral 0.68, dorsal 0.8, caudal 0.8. Floor raised so the shadow
+lands in frame.
+
+| # | R2 | R3 | Against the picture |
+|---|---|---|---|
+| 1 | partial | partial | body now deep and heavy; silhouette h/L 0.563 vs 0.516, too tall (dorsal and tail reach the frame top) |
+| 2 | no | yes | the hammer reads as a plated block seen from the front and above |
+| 3 | partial | partial | near eye right; far eye only a sliver at the far tip |
+| 4 | partial | yes | two windows each side with gears, plates around them |
+| 5 | partial | partial | a row of teeth now shows under the hammer; the grin is narrow and the corners are cluttered |
+| 6 | no | partial | the shoulder shows machine through gaps and a window; cheek and hinge still read white |
+| 7 | yes | yes | |
+| 8 | yes | yes | |
+| 9 | partial | partial | pectorals right; dorsal and tail still too tall for the silhouette |
+| 10 | yes | yes | |
+| 11 | yes | yes | 0.43% vs 0.35% |
+| 12 | no | partial | shadow in frame, but at the bottom edge and faint |
+| 13 | yes (0.80) | yes (1.03) | 0.084 vs 0.081 |
+| 14 | no | partial | reads as a machine now, but in hard black-and-white bands where the reference is grey and silver |
+
+Parts: 160 big, ~290 small discrete + ~680 kitbash micro-parts.

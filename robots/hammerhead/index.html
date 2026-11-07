@@ -44,7 +44,7 @@ scene.environmentIntensity = 0.8;
 
 scene.add(new THREE.HemisphereLight(0xffffff, 0xcfcfca, 0.35));
 const key = new THREE.DirectionalLight(0xffffff, 2.6);
-key.position.set(1, 16, -2);
+key.position.set(-1.5, 16, -1);
 key.castShadow = true;
 key.shadow.mapSize.set(512, 512);
 Object.assign(key.shadow.camera, { left: -10, right: 10, top: 10, bottom: -10, near: 1, far: 40 });
@@ -56,19 +56,20 @@ const fill = new THREE.DirectionalLight(0xffffff, 0.6);
 fill.position.set(8, 3, -10);
 scene.add(fill);
 
-const floor = new THREE.Mesh(new THREE.PlaneGeometry(120, 120), new THREE.ShadowMaterial({ opacity: 0.17 }));
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(120, 120), new THREE.ShadowMaterial({ opacity: 0.2 }));
 floor.rotation.x = -Math.PI / 2;
-floor.position.y = -2.7;
+floor.position.y = -2.45;
 floor.receiveShadow = true;
 scene.add(floor);
 
 const parts = buildShark();
+parts.root.rotation.z = -0.06; // nose slightly down, so the hammer's top reads
 scene.add(parts.root);
 window.__stats = { ...stats };
 
 // Hero still: front 3/4 from the shark's left, slightly above (matches the reference).
 const VIEWS = {
-  hero: { pos: [8.6, 2.3, -14.6], target: [0.2, -0.1, 0], fov: 32 },
+  hero: { pos: [9.2, 3.1, -14.2], target: [0.2, -0.1, 0], fov: 32 },
   side: { pos: [0, 1, -24], target: [0, 0.3, 0], fov: 30 },
 };
 const view = VIEWS[q.get('view') || 'hero'];
