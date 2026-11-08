@@ -5,7 +5,7 @@
 | File | What it is | Specs |
 |---|---|---|
 | `vending_swing_v01.mp4` | Step 4: 6-second ±40° swing loop on a white studio backdrop | H.264, 1080×1350, 30 fps, 180 frames, 2.5 MB |
-| `vending_ad_breakroom_v01.mp4` | Step 5: 8-second ad scene in an office break room, slow push-in, light sweep across the glass at the end | H.264, 1080×1350, 30 fps, 240 frames |
+| `vending_ad_breakroom_v01.mp4` | Step 5: 8-second ad scene in an office break room, slow push-in, light sweep across the glass at the end | H.264, 1080×1350, 30 fps, 240 frames, 3.1 MB |
 
 Source scenes: `vending_machine_swing.blend` and `vending_ad_breakroom.blend` (Blender 5.1+, Eevee set as the
 render engine). Re-render on a laptop with a graphics card for full quality. The MP4s here were rendered with Cycles on
@@ -37,7 +37,7 @@ Follow up once after 3–4 days if there's no reply, then stop.
 | 2 | **Shadows**: touches the floor, no floating | Pass. Lowest point is exactly z = 0 (the feet); contact shadow visible in both videos |
 | 3 | **Label edges**: no stretching or seams | Pass. Bottle label bands are clean, with no stretching. Note: these are plain colour bands, not real brand labels |
 | 4 | **Smooth loop**: last frame flows into the first | Pass (swing). The frame 180 → 1 jump measured 4.74 vs 4.64 for a normal frame step. The ad scene is a one-way push-in, not a loop |
-| 5 | **File under 100 MB** so Instagram takes it | Pass. Swing 2.5 MB; ad scene well under the limit |
+| 5 | **File under 100 MB** so Instagram takes it | Pass. Swing 2.5 MB; ad scene 3.1 MB |
 
 ## What still looks fake (fix before a paid job)
 
