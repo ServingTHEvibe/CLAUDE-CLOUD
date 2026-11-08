@@ -71,6 +71,11 @@ section at the bottom and override anything above them.
   on every part that moves. Master to -14 LUFS. For a sped-up short, score the scene's script
   and time-stretch by the same factor.
 
+## Publishing
+- Every build gets its own new Vercel project and its own domain. Never deploy into another build's
+  project or share a domain between builds. Default domain: `<product-name>-<code>.vercel.app`
+  (e.g. `sphyrna-hx4-hammerhead.vercel.app`). A custom domain is bought only when the user asks.
+
 ## The camera (film)
 - Frame 0 is the front 3/4 hero view, the object big and already moving.
 - Every teardown gets its own side, height and distance, aimed at the part itself,
@@ -109,3 +114,4 @@ One line per mistake. Each one is already folded into the rules above; this list
   no close body gets flagged before it starts.
 - 2026-11-07 hammerhead: no checklist written before code, and density measured at luma
   under 90 instead of 80. Checklist first; luma under 80.
+- 2026-11-08 hammerhead: publishing. Each build gets its own Vercel project and its own domain.
