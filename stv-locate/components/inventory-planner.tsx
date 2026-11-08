@@ -1,5 +1,5 @@
 "use client";
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
   Building2,
@@ -51,6 +51,15 @@ import { importRoomPlan } from "../lib/roomplan";
 const InteriorStudio = lazy(() => import("./interior-studio"));
 
 type View = { lat: number; lng: number; zoom: number };
+type AddressResult = {
+  place_id?: string | number;
+  display_name: string;
+  name?: string;
+  lat: string | number;
+  lon: string | number;
+  location_hint?: string;
+  provider?: string;
+};
 export type PlannerStorage = {
   loadLocations: () => Promise<Location[]>;
   saveLocation: (l: Location) => Promise<Location>;
@@ -124,7 +133,7 @@ export default function InventoryPlanner({
   const [gpsBusy, setGpsBusy] = useState(false),
     [gpsError, setGpsError] = useState("");
   const [query, setQuery] = useState(""),
-    [results, setResults] = useState<any[]>([]),
+    [results, setResults] = useState<AddressResult[]>([]),
     [searching, setSearching] = useState(false),
     [searched, setSearched] = useState(false);
   const [tracing, setTracing] = useState(false),
@@ -151,8 +160,9 @@ export default function InventoryPlanner({
           async (res) => (await readApiResponse(res)).locations,
         )
     )
-      .then((list: Location[]) => {
+      .then((value: Location[] | undefined) => {
         if (!live) return;
+        const list = Array.isArray(value) ? value : [];
         setLocations(list);
         const resume = restored.current;
         if (resume?.stage === "site" && resume.locationId) {
@@ -167,10 +177,12 @@ export default function InventoryPlanner({
       })
       .catch((e) => live && setError(e.message || "Could not load saved buildings."))
       .finally(() => live && setLoaded(true));
+    const outlines = outlineVersion,
+      lookups = lookupVersion;
     return () => {
       live = false;
-      outlineVersion.current++;
-      lookupVersion.current++;
+      outlines.current++;
+      lookups.current++;
     };
     // Load once per planner session.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -181,7 +193,7 @@ export default function InventoryPlanner({
     for (const p of pending)
       if (!previews[p.id])
         void readPendingPhoto(p.id).then((blob) => {
-          if (live && blob) setPreviews((v) => ({ ...v, [p.id]: URL.createObjectURL(blob) }));
+          if (live && blob) setPreviews((v) => ({ ...v, [p.id]: previewUrl(blob) }));
         });
     return () => {
       live = false;
@@ -290,7 +302,7 @@ export default function InventoryPlanner({
   }
 
   // ---- Step 1: find the building -------------------------------------------------------------
-  async function useGps() {
+  async function locateWithGps() {
     if (gpsBusy) return;
     setGpsBusy(true);
     setGpsError("");
@@ -375,7 +387,7 @@ export default function InventoryPlanner({
       setSearched(true);
     }
   }
-  function chooseResult(res: any) {
+  function chooseResult(res: AddressResult) {
     const exact = res.location_hint === "building_address";
     startCandidate(
       {
@@ -751,7 +763,7 @@ export default function InventoryPlanner({
         ? nextPhotoLabel(draft!.photos.map((p) => p.label).concat(machinePending.map((p) => p.label)))
         : (areaLabel.trim() || draft?.room.trim() || selected?.room.trim() || "Area photo").slice(0, 250);
     await keepPendingPhoto(id, blob);
-    setPreviews((v) => ({ ...v, [id]: URL.createObjectURL(blob) }));
+    setPreviews((v) => ({ ...v, [id]: previewUrl(blob) }));
     setPending((v) => [...v, { id, label, status: "uploading", target }]);
     await sendPhoto(id, label, target, blob, draft?.id);
   }
@@ -853,7 +865,7 @@ export default function InventoryPlanner({
     if (draftDirty && !confirm("You have an unsaved machine. Leave without saving it?")) return;
     if (uploading && !confirm("A photo is still uploading. Leave anyway?")) return;
     for (const p of pending) void dropPendingPhoto(p.id);
-    clearPlannerSession();
+    clearPlannerSession(owner);
     onClose({ saved: savedCount, building: location?.name });
   }
   function back() {
@@ -971,7 +983,7 @@ export default function InventoryPlanner({
           Finish
         </button>
       </header>
-      <div className="fp-body">
+      <div className={"fp-body" + (stage === "site" && panel === "indoor" ? " compact" : "")}>
         <div className="fp-map">
           <AssetMap
             assets={mapAssets}
@@ -1059,13 +1071,13 @@ export default function InventoryPlanner({
     );
     return (
       <div className="fp-stack">
-        <button className="fp-btn primary big" onClick={() => void useGps()} disabled={gpsBusy}>
+        <button className="fp-btn primary big" onClick={() => void locateWithGps()} disabled={gpsBusy}>
           {gpsBusy ? <Loader2 className="spin" size={22} /> : <LocateFixed size={22} />}
           {gpsBusy ? "Getting your GPS position…" : "Use my GPS"}
         </button>
         {gpsError && (
           <div className="fp-card warn" role="alert">
-            <strong>GPS isn't available</strong>
+            <strong>GPS isn&apos;t available</strong>
             <p>{gpsError}</p>
             <div className="fp-row">
               <button className="fp-btn" onClick={() => document.getElementById("fp-address")?.focus()}>
@@ -1354,7 +1366,7 @@ export default function InventoryPlanner({
           >
             <Building2 size={18} /> Use the building pin
           </button>
-          <button className="fp-btn full" onClick={() => void useGps()} disabled={gpsBusy}>
+          <button className="fp-btn full" onClick={() => void locateWithGps()} disabled={gpsBusy}>
             {gpsBusy ? <Loader2 className="spin" size={18} /> : <Crosshair size={18} />} Refresh my GPS
             position
           </button>
@@ -1820,7 +1832,7 @@ export default function InventoryPlanner({
         <button className="fp-btn full" onClick={() => setFocus({ ...focusFor(l) })}>
           <Building2 size={18} /> Return to the building
         </button>
-        <button className="fp-btn full" onClick={() => void useGps()} disabled={gpsBusy}>
+        <button className="fp-btn full" onClick={() => void locateWithGps()} disabled={gpsBusy}>
           <LocateFixed size={18} /> Show my GPS position
         </button>
         <button
@@ -2010,4 +2022,11 @@ export function modelKindLabel(kind?: string) {
       : kind === "estimated"
         ? "Estimated model"
         : "3D model (source not labeled)";
+}
+function previewUrl(blob: Blob) {
+  try {
+    return typeof URL.createObjectURL === "function" ? URL.createObjectURL(blob) : "";
+  } catch {
+    return "";
+  }
 }

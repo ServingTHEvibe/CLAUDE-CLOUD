@@ -62,13 +62,13 @@ const KEY = "stv-locate.planner-session.v1";
 export function sessionOwner(mode: "cloud" | "device", userId?: string | null) {
   return mode === "device" ? "device" : "cloud:" + (userId || "");
 }
-export function readPlannerSession(owner?: string): PlannerSession | null {
+const keyFor = (owner: string) => KEY + ":" + owner;
+export function readPlannerSession(owner: string): PlannerSession | null {
   try {
-    const raw = localStorage.getItem(KEY);
+    const raw = localStorage.getItem(keyFor(owner));
     if (!raw) return null;
     const parsed = plannerSessionSchema.safeParse(JSON.parse(raw));
-    if (!parsed.success) return null;
-    if (owner !== undefined && parsed.data.owner !== owner) return null;
+    if (!parsed.success || parsed.data.owner !== owner) return null;
     return parsed.data;
   } catch {
     return null;
@@ -78,15 +78,15 @@ export function readPlannerSession(owner?: string): PlannerSession | null {
 export function writePlannerSession(session: Omit<PlannerSession, "updated" | "version">) {
   try {
     const value = plannerSessionSchema.parse({ ...session, version: 1, updated: new Date().toISOString() });
-    localStorage.setItem(KEY, JSON.stringify(value));
+    localStorage.setItem(keyFor(value.owner), JSON.stringify(value));
     return true;
   } catch {
     return false;
   }
 }
-export function clearPlannerSession() {
+export function clearPlannerSession(owner: string) {
   try {
-    localStorage.removeItem(KEY);
+    localStorage.removeItem(keyFor(owner));
   } catch {}
 }
 /** True when the draft holds anything the user typed or captured that is not yet saved. */

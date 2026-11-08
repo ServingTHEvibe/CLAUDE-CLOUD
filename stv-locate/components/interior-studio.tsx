@@ -405,14 +405,22 @@ export default function InteriorStudio({ location, assets, save, deviceOnly, onC
           <span>
             {demo
               ? "DEMO LAYOUT"
-              : layout.basis === "measured"
-                ? "OWNER-ENTERED DIMENSIONS"
-                : "ESTIMATED LAYOUT"}
+              : layout.source === "roomplan-scan"
+                ? "MEASURED SCAN · LIDAR"
+                : layout.reference
+                  ? "REFERENCE PHOTO · SCALE AS ENTERED"
+                  : layout.basis === "measured"
+                    ? "OWNER-ENTERED DIMENSIONS"
+                    : "ESTIMATED LAYOUT"}
           </span>
           <p>
             {demo
               ? "Try the rising walls, enter a room and tap a machine. Demo edits stay in this preview."
-              : "Model based on the rooms you enter. Check dimensions and machine positions on site."}
+              : layout.source === "roomplan-scan"
+                ? "Walls imported from a LiDAR RoomPlan scan, in metres. Tap Place next to a machine, then tap its spot."
+                : layout.reference
+                  ? "A photo of a posted plan or safety map. Distances are only as accurate as the size you enter."
+                  : "Model based on the rooms you enter. Check dimensions and machine positions on site."}
           </p>
         </div>
         <fieldset disabled={busy} className="interior-workspace">

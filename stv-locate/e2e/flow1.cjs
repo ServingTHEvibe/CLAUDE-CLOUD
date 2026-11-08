@@ -1,0 +1,68 @@
+const L = require(__dirname + '/lib.cjs');
+const { check } = L;
+(async () => {
+  const browser = await L.chromium.launch();
+  const { ctx, page } = await L.newPhone(browser, { geolocation: { latitude: 41.58682, longitude: -93.62496, accuracy: 18 }, permissions: ['geolocation'] });
+  await L.mockProviders(page);
+  await L.signIn(page);
+  await page.locator('button.field-add').click();
+  await page.getByRole('button', { name: 'Use my GPS' }).click();
+  await page.waitForSelector('text=GPS position');
+  await page.waitForTimeout(800);
+  await page.screenshot({ path: 'new-01-gps.png' });
+  check('GPS: you-are-here dot rendered', await page.locator('.gps-you-are-here').count() === 1);
+  check('GPS: building pin rendered', await page.locator('.equipment-map-marker').count() >= 1);
+  const addr = await page.getByLabel('Address').inputValue();
+  check('GPS: nearest address filled (simulated reverse geocode)', addr.includes('1550 Test Ave'), addr);
+  check('GPS: outline drawn (simulated footprint)', await page.locator('.fp-map path.leaflet-interactive, .fp-map svg path').count() >= 1);
+  await page.getByLabel('Business / building name').fill('E2E Plant');
+  await page.getByRole('button', { name: 'Confirm building' }).click();
+  await page.waitForSelector('.fp-card strong:has-text("Tap where the machine is")');
+  // Machine 1: tap map, chip, room, photo, Save & add another
+  await L.tapMap(page, 0.5, 0.55);
+  await page.getByRole('button', { name: 'Drink vending machine' }).click();
+  await page.getByLabel('Room / area').fill('Breakroom');
+  await page.getByLabel('Take photo').setInputFiles('machine1.png');
+  await page.waitForSelector('figcaption.ok');
+  check('Photo: attached state shown', true);
+  await page.screenshot({ path: 'new-02-form.png' });
+  await page.getByRole('button', { name: 'Save & add another' }).click();
+  await page.waitForSelector('text=Saved “Drink vending machine”');
+  // Machine 2: same spot (default)
+  const spot = await page.locator('.fp-spot').textContent();
+  check('Save & add another: next machine starts at same spot', /Same spot/.test(spot), spot);
+  check('Save & add another: room carried over', (await page.getByLabel('Room / area').inputValue()) === 'Breakroom');
+  await page.getByRole('button', { name: 'Snack vending machine' }).click();
+  await page.getByRole('button', { name: 'Save & add another' }).click();
+  await page.waitForSelector('text=Saved “Snack vending machine”');
+  // Machine 3: tap a new nearby spot, custom type
+  await L.tapMap(page, 0.56, 0.6);
+  await page.getByLabel('Other type').fill('Cooler');
+  await page.getByLabel('Machine name').fill('Breakroom cooler');
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await page.waitForSelector('text=Saved “Breakroom cooler”');
+  await page.screenshot({ path: 'new-03-saved-sheet.png' });
+  await page.getByRole('button', { name: 'Back to all machines' }).click();
+  // Machine 4: another part of the building, floor 2
+  await page.getByRole('button', { name: 'Add equipment' }).click();
+  await L.tapMap(page, 0.3, 0.3);
+  await page.getByRole('button', { name: 'Combo vending machine' }).click();
+  await page.getByLabel('Room / area').fill('Shipping office');
+  await page.getByLabel('Floor').fill('2');
+  await page.getByLabel('How to find it').fill('Up the east stairs, first door left');
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await page.waitForSelector('text=Saved “Combo vending machine”');
+  const { assets } = await L.api(page, '/api/assets');
+  check('Saved 4 separate machine records', assets.length === 4, 'count=' + assets.length);
+  check('Each has its own ID', new Set(assets.map(a => a.id)).size === assets.length);
+  const drink = assets.find(a => a.name === 'Drink vending machine'), snack = assets.find(a => a.name === 'Snack vending machine');
+  check('Two machines share the exact same coordinates', drink && snack && drink.lat === snack.lat && drink.lng === snack.lng, drink && `${drink.lat},${drink.lng}`);
+  check('Drink machine photo stored privately', drink && drink.photos.length === 1 && drink.photos[0].key.startsWith('local_seedy/'));
+  const combo = assets.find(a => a.name.startsWith('Combo'));
+  check('Other-area machine keeps floor/room/directions', combo && combo.floor === '2' && combo.room === 'Shipping office' && /east stairs/.test(combo.entrance));
+  require('fs').writeFileSync('state.json', JSON.stringify({ assets }, null, 1));
+  await ctx.storageState({ path: 'storage.json' });
+  await page.screenshot({ path: 'new-04-overview.png' });
+  await browser.close();
+  const failed = L.results.filter(r => !r.ok).length; console.log('flow1 done, failures:', failed); process.exit(failed ? 1 : 0);
+})().catch(e => { console.error(e); process.exit(2); });

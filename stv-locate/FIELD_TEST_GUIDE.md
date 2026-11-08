@@ -1,3 +1,5 @@
+> **November 2026:** the Add equipment flow was rebuilt. See `FIELD_FIXES_2026-11.md` for the current steps; button names below are from earlier versions.
+
 # STV Locate — field pilot
 
 For October 8, 2026. Open https://stv-locate.brannu5235.chatgpt.site in the same phone browser you will use in the field.

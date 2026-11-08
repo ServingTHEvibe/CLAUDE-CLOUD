@@ -120,3 +120,5 @@
 @media (min-width:900px){.fp .map-pin-picker{position:absolute;left:15px;top:76px;bottom:auto;right:auto;width:380px;border-radius:12px}}
 .fp-map .map-error{pointer-events:none}
 .fp-map .map-error button{pointer-events:auto}
+.fp-body.compact .fp-map{flex-basis:20%;min-height:130px}
+@media (min-width:900px){.fp-body.compact .fp-map{flex-basis:auto}}

@@ -574,7 +574,7 @@ export default function FieldWorkspace() {
               <Loader2 size={25} className="spin" />
               Loading your workspace…
             </div>
-          ) : tab === "map" ? (
+          ) : tab === "map" && !planner ? (
             <div className="field-overview-map">
               <AssetMap
                 assets={shown}
