@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>3D Product Videos | Serving The Vibe Media</title>
+<meta name="description" content="3D product videos made from one photo of your product. Spin loops and ad scenes, ready for reels, ads and product pages.">
+<meta property="og:title" content="3D product videos from one photo">
+<meta property="og:image" content="media/vending_swing_f0046.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0e0f12; --panel: #17191e; --line: #262932; --text: #f2f2f0; --muted: #9a9ea8;
+    --accent: #e7c35a; --accent-ink: #1a1505;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { background: var(--bg); color: var(--text); font: 16px/1.55 Inter, system-ui, sans-serif; }
+  a { color: inherit; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
+  header { padding: 22px 0; display: flex; justify-content: space-between; align-items: center; }
+  .brand { font-weight: 800; letter-spacing: .04em; font-size: 14px; text-transform: uppercase; }
+  .brand span { color: var(--accent); }
+  .cta { background: var(--accent); color: var(--accent-ink); font-weight: 700; text-decoration: none;
+         padding: 11px 18px; border-radius: 999px; font-size: 14px; display: inline-block; }
+  .eyebrow { font: 500 12px/1 "JetBrains Mono", monospace; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); }
+  .hero { display: grid; grid-template-columns: 1.05fr .95fr; gap: 48px; align-items: center; padding: 40px 0 72px; }
+  h1 { font-size: clamp(36px, 5.4vw, 64px); line-height: 1.02; font-weight: 800; letter-spacing: -.02em; margin: 16px 0 18px; }
+  .lede { color: var(--muted); font-size: 18px; max-width: 34ch; margin-bottom: 28px; }
+  .frame { background: var(--panel); border: 1px solid var(--line); border-radius: 18px; overflow: hidden; }
+  .frame video, .frame img { display: block; width: 100%; height: auto; aspect-ratio: 4 / 5; object-fit: cover; }
+  .cap { padding: 12px 16px; font-size: 13px; color: var(--muted); display: flex; justify-content: space-between; gap: 12px; }
+  section { padding: 64px 0; border-top: 1px solid var(--line); }
+  h2 { font-size: clamp(26px, 3.4vw, 38px); letter-spacing: -.015em; margin: 12px 0 28px; }
+  .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .step { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 22px; }
+  .step b { display: block; font-size: 17px; margin: 10px 0 6px; }
+  .step p { color: var(--muted); font-size: 15px; }
+  .price { display: grid; grid-template-columns: 1.3fr 1fr; gap: 16px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 28px; }
+  .card.best { border-color: var(--accent); }
+  .amt { font-size: 44px; font-weight: 800; letter-spacing: -.02em; margin: 8px 0 2px; }
+  .amt small { font-size: 16px; color: var(--muted); font-weight: 500; }
+  .card ul { padding-left: 18px; color: var(--muted); margin: 14px 0 22px; }
+  .card li { margin: 4px 0; }
+  .free { margin-top: 18px; color: var(--muted); }
+  .free strong { color: var(--text); }
+  footer { padding: 40px 0 56px; border-top: 1px solid var(--line); color: var(--muted); font-size: 14px; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  @media (max-width: 820px) {
+    .hero, .price { grid-template-columns: 1fr; gap: 28px; }
+    .grid3, .steps { grid-template-columns: 1fr; }
+    .hero { padding-top: 16px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">Serving The Vibe <span>Media</span></div>
+    <a class="cta" href="https://instagram.com/servingthevibemedia">DM on Instagram</a>
+  </header>
+
+  <div class="hero">
+    <div>
+      <div class="eyebrow">3D product videos</div>
+      <h1>One photo of your product in. A video that sells it out.</h1>
+      <p class="lede">I rebuild your product in 3D at its real size, then turn it into spin loops and ad scenes for reels, ads and product pages.</p>
+      <a class="cta" href="#pricing">See pricing</a>
+    </div>
+    <div class="frame">
+      <video src="media/vending_swing_v01.mp4" poster="media/swing_poster.jpg" autoplay muted loop playsinline></video>
+      <div class="cap"><span>6-second swing loop</span><span>1080 × 1350 · 30 fps</span></div>
+    </div>
+  </div>
+
+  <section>
+    <div class="eyebrow">The work</div>
+    <h2>Made from a single photo.</h2>
+    <div class="grid3">
+      <div class="frame">
+        <img src="media/ad_breakroom_f0205.jpg" alt="Vending machine in an office break room with a light sweeping across the glass" loading="lazy">
+        <div class="cap"><span>Ad scene: break room</span><span>8 s push-in</span></div>
+      </div>
+      <div class="frame">
+        <img src="media/vending_swing_f0046.jpg" alt="Vending machine three-quarter view on a white studio backdrop" loading="lazy">
+        <div class="cap"><span>Studio three-quarter</span><span>real scale</span></div>
+      </div>
+      <div class="frame">
+        <img src="media/step3_materials_hero.jpg" alt="Amber glass candle jar with a black lid and paper label" loading="lazy">
+        <div class="cap"><span>Candle jar: glass &amp; label</span><span>studio</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="eyebrow">How it works</div>
+    <h2>Three steps. No photoshoot.</h2>
+    <div class="steps">
+      <div class="step"><span class="eyebrow">01</span><b>Send one photo</b><p>A clear shot of your product and its real height. Bottles, jars, candles, boxes, cans and machines all work.</p></div>
+      <div class="step"><span class="eyebrow">02</span><b>I build it in 3D</b><p>Matched to your outline, materials and label, at real size, with soft shadows and real-looking glass and metal.</p></div>
+      <div class="step"><span class="eyebrow">03</span><b>You get the videos</b><p>Spin loops and ad scenes as MP4s sized for Instagram, under 100 MB and ready to post.</p></div>
+    </div>
+  </section>
+
+  <section id="pricing">
+    <div class="eyebrow">Pricing</div>
+    <h2>Simple pricing.</h2>
+    <div class="price">
+      <div class="card best">
+        <div class="eyebrow">Monthly</div>
+        <div class="amt">$500 <small>/ month</small></div>
+        <div style="color:var(--muted)">4 new videos every month, about $125 each</div>
+        <ul>
+          <li>New scenes, seasonal drops and launches</li>
+          <li>Spin loops and ad scenes</li>
+          <li>1080 × 1350, ready for reels, ads and product pages</li>
+        </ul>
+        <a class="cta" href="https://instagram.com/servingthevibemedia">Start monthly</a>
+      </div>
+      <div class="card">
+        <div class="eyebrow">Single video</div>
+        <div class="amt">$200</div>
+        <div style="color:var(--muted)">One video, one scene</div>
+        <ul>
+          <li>Spin loop or ad scene</li>
+          <li>Same quality and specs</li>
+        </ul>
+        <a class="cta" href="https://instagram.com/servingthevibemedia">Order one</a>
+      </div>
+    </div>
+    <p class="free"><strong>Your first video is free.</strong> Send a photo and see it before you pay anything.</p>
+  </section>
+
+  <footer>
+    <span>Serving The Vibe Media</span>
+    <span>3D product videos · made in Blender</span>
+  </footer>
+</div>
+</body>
+</html>
