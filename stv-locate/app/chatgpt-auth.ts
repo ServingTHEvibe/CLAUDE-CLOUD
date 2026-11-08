@@ -19,6 +19,9 @@ const SIGN_OUT_PATH = "/signout-with-chatgpt";
 const CALLBACK_PATH = "/callback";
 
 export async function getChatGPTUser(): Promise<ChatGPTUser | null> {
+  // The Vercel test copy has no trusted sign-in in front of it, so identity
+  // headers there could be forged. Treat every visitor as signed out.
+  if (process.env.STV_TARGET === "vercel") return null;
   const requestHeaders = await headers();
   const userId = requestHeaders.get(USER_ID_HEADER);
   const email = requestHeaders.get(USER_EMAIL_HEADER);
