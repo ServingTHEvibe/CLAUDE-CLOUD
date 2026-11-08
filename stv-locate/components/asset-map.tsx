@@ -17,6 +17,7 @@ export default function AssetMap({
   editablePinId,
   buildingOutline,
   pickLabel,
+  userPosition,
 }: {
   assets: Asset[];
   selected: string;
@@ -29,6 +30,8 @@ export default function AssetMap({
   editablePinId?: string;
   buildingOutline?: Point[];
   pickLabel?: string;
+  /** Live "you are here" GPS dot with its accuracy circle. Never an equipment record. */
+  userPosition?: { lat: number; lng: number; accuracy: number } | null;
 }) {
   const host = useRef<HTMLDivElement>(null),
     map = useRef<Leaflet.Map | null>(null),
@@ -157,6 +160,35 @@ export default function AssetMap({
       polygon.remove();
     };
   }, [ready, buildingOutline]);
+  useEffect(() => {
+    if (!ready || !engine.current || !map.current || !userPosition) return;
+    const L = engine.current,
+      m = map.current;
+    const circle = L.circle([userPosition.lat, userPosition.lng], {
+      radius: Math.min(userPosition.accuracy || 0, 2000),
+      color: "#2f7fe0",
+      weight: 1,
+      fillColor: "#2f7fe0",
+      fillOpacity: 0.12,
+      interactive: false,
+    }).addTo(m);
+    const dot = L.marker([userPosition.lat, userPosition.lng], {
+      icon: L.divIcon({
+        className: "gps-you-are-here",
+        html: "<span></span>",
+        iconSize: [22, 22],
+        iconAnchor: [11, 11],
+      }),
+      interactive: false,
+      keyboard: false,
+      zIndexOffset: 2000,
+      title: "You are here (GPS)",
+    }).addTo(m);
+    return () => {
+      circle.remove();
+      dot.remove();
+    };
+  }, [ready, userPosition]);
   useEffect(() => {
     const m = map.current;
     if (!ready || !m || !focus) return;

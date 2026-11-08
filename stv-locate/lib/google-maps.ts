@@ -169,3 +169,41 @@ export function mapZoom(height = 1800, lat = 41.6) {
 export function mapHeight(zoom: number, lat: number) {
   return Math.max(30, Math.min(20000000, (156543.03392 * Math.cos((lat * Math.PI) / 180) * 600) / 2 ** zoom));
 }
+
+export type ReverseAddress = { address: string; name: string; lat: number; lng: number; exact: boolean };
+/** Nearest address to a point. Never throws; returns null when no lookup is possible. */
+export async function reverseAddress(lat: number, lng: number): Promise<ReverseAddress | null> {
+  try {
+    const key = getGoogleKey();
+    if (key) {
+      const maps = await loadGoogleMaps(key);
+      const { Geocoder } = await maps.importLibrary("geocoding");
+      return await new Promise((resolve) => {
+        const timer = setTimeout(() => resolve(null), 12000);
+        new Geocoder().geocode({ location: { lat, lng } }, (results: any[], status: string) => {
+          clearTimeout(timer);
+          const r = status === "OK" ? results?.[0] : null;
+          if (!r) return resolve(null);
+          resolve({
+            address: String(r.formatted_address || "").slice(0, 250),
+            name: "",
+            lat: r.geometry?.location?.lat() ?? lat,
+            lng: r.geometry?.location?.lng() ?? lng,
+            exact: r.geometry?.location_type === "ROOFTOP",
+          });
+        });
+      });
+    }
+    const response = await fetch(
+      "/api/geocode?" + new URLSearchParams({ lat: String(lat), lng: String(lng) }),
+      {
+        signal: AbortSignal.timeout(12000),
+      },
+    );
+    if (!response.ok) return null;
+    const json = (await response.json()) as { result?: ReverseAddress | null };
+    return json.result && typeof json.result.address === "string" ? json.result : null;
+  } catch {
+    return null;
+  }
+}

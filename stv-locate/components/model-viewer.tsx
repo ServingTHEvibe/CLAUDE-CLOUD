@@ -19,6 +19,8 @@ export default function ModelViewer(props: Props) {
     [busy, setBusy] = useState(false),
     [selected, setSelected] = useState("");
   const working = useRef(false);
+  const [identified, setIdentified] = useState("");
+  const view = useRef<{ orbit: any; camera: Three.PerspectiveCamera } | null>(null);
   const key = props.location.interior?.model?.key;
   const pins = props.location.interior?.modelPins || [];
 
@@ -69,6 +71,7 @@ export default function ModelViewer(props: Props) {
         const orbit = new OrbitControls(camera, renderer.domElement);
         controls = orbit;
         orbit.target.copy(center);
+        view.current = { orbit, camera };
         orbit.enableDamping = true;
         orbit.minDistance = span * 0.02;
         orbit.maxDistance = span * 10;
@@ -92,12 +95,7 @@ export default function ModelViewer(props: Props) {
           down = { x: event.clientX, y: event.clientY };
         });
         renderer.domElement.addEventListener("pointerup", async (event) => {
-          if (
-            !choice.current ||
-            working.current ||
-            Math.hypot(event.clientX - down.x, event.clientY - down.y) > 6
-          )
-            return;
+          if (working.current || Math.hypot(event.clientX - down.x, event.clientY - down.y) > 6) return;
           const rect = renderer!.domElement.getBoundingClientRect();
           const ray = new T.Raycaster();
           ray.setFromCamera(
@@ -107,6 +105,12 @@ export default function ModelViewer(props: Props) {
             ),
             camera,
           );
+          if (!choice.current) {
+            // Identify a saved machine marker.
+            const marker = markers.current ? ray.intersectObject(markers.current, true)[0] : undefined;
+            setIdentified((marker?.object.userData.assetId as string) || "");
+            return;
+          }
           const hit = ray.intersectObject(gltf.scene, true)[0];
           if (!hit) return;
           const assetId = choice.current,
@@ -188,10 +192,12 @@ export default function ModelViewer(props: Props) {
         (mesh.material as Three.Material).dispose();
       }
       for (const pin of pins) {
+        const chosen = pin.assetId === identified;
         const marker = new T.Mesh(
-          new T.SphereGeometry(markerScale.current, 12, 8),
-          new T.MeshBasicMaterial({ color: 0xd29b42, depthTest: false }),
+          new T.SphereGeometry(markerScale.current * (chosen ? 1.6 : 1), 12, 8),
+          new T.MeshBasicMaterial({ color: chosen ? 0x2f7fe0 : 0xd29b42, depthTest: false }),
         );
+        marker.userData.assetId = pin.assetId;
         marker.position.set(pin.x, pin.y, pin.z);
         marker.renderOrder = 5;
         group.add(marker);
@@ -200,7 +206,17 @@ export default function ModelViewer(props: Props) {
     return () => {
       cancelled = true;
     };
-  }, [ready, props.location.interior?.modelPins]);
+  }, [ready, props.location.interior?.modelPins, identified]);
+  const named = (id: string) => props.assets.find((a) => a.id === id);
+  const shown = identified ? named(identified) : undefined;
+  function showMarker(id: string) {
+    setIdentified(id);
+    const pin = pins.find((p) => p.assetId === id);
+    if (pin && view.current) {
+      view.current.orbit.target.set(pin.x, pin.y, pin.z);
+      view.current.orbit.update();
+    }
+  }
 
   return (
     <section className="saved-model" aria-label="Saved 3D location">
@@ -231,6 +247,27 @@ export default function ModelViewer(props: Props) {
             ? "Tap the machine or its position in the model to save its marker."
             : "Drag to look around. Pinch or scroll to zoom. Equipment markers are saved separately from GPS pins."}
       </p>
+      {shown && (
+        <p className="model-identified" role="status">
+          <b>{shown.name}</b> · {shown.equipmentType || shown.category} · {shown.room || "Area not named"}
+          {shown.floor ? " · Floor " + shown.floor : ""}
+        </p>
+      )}
+      {pins.length > 0 && (
+        <div className="model-marked">
+          <small>Marked in this model (tap a marker, or a name to find it):</small>
+          {pins.map((p) => (
+            <button
+              key={p.assetId}
+              type="button"
+              className="fp-btn small"
+              onClick={() => showMarker(p.assetId)}
+            >
+              {named(p.assetId)?.name || "Removed machine"}
+            </button>
+          ))}
+        </div>
+      )}
       <small>{pins.length} equipment markers saved · Model dimensions depend on the uploaded file.</small>
       {error && <p role="alert">{error}</p>}
       <a href={"/api/models?key=" + encodeURIComponent(key || "")} download>

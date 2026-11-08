@@ -1,7 +1,7 @@
 import { readApiResponse } from "./api-response";
 import { saveDevicePhoto } from "./field-store";
 
-async function preparePhoto(file: File, deviceOnly: boolean): Promise<Blob> {
+export async function preparePhoto(file: File, deviceOnly: boolean): Promise<Blob> {
   if (!["image/jpeg", "image/png", "image/webp"].includes(file.type))
     throw Error("Choose a JPG, PNG or WebP photo. On iPhone, use the camera or export an HEIC photo as JPG.");
   if (file.size > 24000000) throw Error("Choose a photo smaller than 24 MB.");
@@ -33,7 +33,15 @@ async function preparePhoto(file: File, deviceOnly: boolean): Promise<Blob> {
 }
 
 export async function capturePhoto(file: File, deviceOnly = false): Promise<string> {
-  const photo = await preparePhoto(file, deviceOnly);
+  return uploadPreparedPhoto(await preparePhoto(file, deviceOnly), deviceOnly, file.name);
+}
+
+/** Store an already prepared photo; safe to call again for a retry. */
+export async function uploadPreparedPhoto(
+  photo: Blob,
+  deviceOnly = false,
+  name = "photo.jpg",
+): Promise<string> {
   if (deviceOnly) {
     const source = await new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
@@ -44,7 +52,14 @@ export async function capturePhoto(file: File, deviceOnly = false): Promise<stri
     return saveDevicePhoto(source);
   }
   const form = new FormData();
-  form.append("file", photo, file.name);
-  const response = await readApiResponse(await fetch("/api/files", { method: "POST", body: form }));
+  form.append("file", photo, name);
+  let reply: Response;
+  try {
+    reply = await fetch("/api/files", { method: "POST", body: form, signal: AbortSignal.timeout(60000) });
+  } catch {
+    throw Error("The photo upload did not finish. Check your signal and tap Retry — the photo is kept.");
+  }
+  const response = await readApiResponse(reply);
+  if (typeof response.key !== "string") throw Error("The photo upload was not confirmed. Tap Retry.");
   return response.key;
 }

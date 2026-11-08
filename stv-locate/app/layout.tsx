@@ -5,6 +5,7 @@ import "./address.css";
 import "./map-view.css";
 import "./interior.css";
 import "./workflow.css";
+import "./planner.css";
 
 export const metadata: Metadata = {
   title: "STV Locate · Every asset. Exactly where.",

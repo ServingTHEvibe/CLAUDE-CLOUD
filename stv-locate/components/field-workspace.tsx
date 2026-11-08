@@ -22,6 +22,7 @@ import {
   Wrench,
 } from "lucide-react";
 import InventoryPlanner, { type PlannerStorage } from "./inventory-planner";
+import { readPlannerSession, sessionOwner } from "../lib/planner-session";
 import AssetMap from "./equipment-map";
 const AdvancedWorkspace = lazy(() => import("../app/advanced-workspace"));
 import type { Asset } from "../lib/asset";
@@ -117,6 +118,17 @@ export default function FieldWorkspace() {
       setError((e as Error).message);
     }
   }, []);
+  // Reopen an unfinished Add-equipment session after a reload, camera crash or sign-in.
+  const resumeChecked = useRef(false);
+  useEffect(() => {
+    if (loading || planner || resumeChecked.current) return;
+    resumeChecked.current = true;
+    try {
+      if (new URLSearchParams(window.location.search).has("resume")) history.replaceState(null, "", "/");
+    } catch {}
+    if (mode === "cloud" && !session?.signedIn) return;
+    if (readPlannerSession(sessionOwner(mode, session?.user?.id))) setPlanner(true);
+  }, [loading, planner, mode, session]);
   const refresh = useCallback(async () => {
     setLoading(true);
     setCloudReady(false);
@@ -975,14 +987,19 @@ export default function FieldWorkspace() {
       {planner && (
         <InventoryPlanner
           assets={assets}
+          owner={sessionOwner(mode, session?.user?.id)}
           storage={mode === "device" ? deviceStorage : undefined}
           onSaved={(a) => {
             if (mode === "device") refreshDevice();
             else setCloud((prev) => [a, ...prev.filter((x) => x.id !== a.id)]);
           }}
-          onClose={() => {
+          onClose={(summary) => {
             setPlanner(false);
             refreshDevice();
+            if (summary?.saved)
+              setMessage(
+                `${summary.saved} ${summary.saved === 1 ? "machine" : "machines"} saved${summary.building ? " at " + summary.building : ""}${mode === "device" ? " on this device" : " to your account"}.`,
+              );
           }}
         />
       )}

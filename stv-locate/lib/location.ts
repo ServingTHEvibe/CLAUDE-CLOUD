@@ -1,11 +1,29 @@
 import { z } from "zod";
 import { outlineSchema } from "./building-outline";
 import { interiorLayoutSchema } from "./interior-layout";
+/** "Capture this area" photos: a wider view of a room with the machines in context. */
+export const areaPhotoSchema = z.object({
+  key: z.string().max(600),
+  label: z.string().max(250),
+  room: z.string().max(250).optional(),
+  floor: z.string().max(250).optional(),
+  assetIds: z.array(z.string().uuid()).max(50).optional(),
+  taken: z.string().max(50).optional(),
+});
+export type AreaPhoto = z.infer<typeof areaPhotoSchema>;
 const baseLocationSchema = z.object({
   outline: outlineSchema.optional(),
   interior: z
     .object({
-      model: z.object({ key: z.string().min(1).max(600), label: z.string().max(250) }).optional(),
+      model: z
+        .object({
+          key: z.string().min(1).max(600),
+          label: z.string().max(250),
+          /** How the model was made. Measured = LiDAR/RoomPlan; reconstruction = photo-guided; estimated = hand-modeled. */
+          kind: z.enum(["measured-scan", "reconstruction", "estimated"]).optional(),
+          uploaded: z.string().max(50).optional(),
+        })
+        .optional(),
       modelPins: z
         .array(
           z.object({
@@ -18,7 +36,7 @@ const baseLocationSchema = z.object({
         .max(200)
         .optional(),
       notes: z.string().max(5000),
-      photos: z.array(z.object({ key: z.string().max(600), label: z.string().max(250) })).max(12),
+      photos: z.array(areaPhotoSchema).max(24),
       section: z.object({ key: z.string().max(600), label: z.string().max(250) }).optional(),
     })
     .optional(),

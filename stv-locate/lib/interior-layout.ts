@@ -22,6 +22,8 @@ export const interiorLayoutSchema = z
     version: z.literal(1),
     floor: z.string().trim().min(1).max(80),
     basis: z.enum(["estimated", "measured"]),
+    /** Where the plan came from: a hand sketch, a photographed/uploaded plan, or a LiDAR RoomPlan scan. */
+    source: z.enum(["sketch", "reference-photo", "roomplan-scan"]).optional(),
     rooms: z.array(roomSchema).max(12),
     pins: z.array(indoorPinSchema).max(200),
     reference: z

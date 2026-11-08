@@ -190,7 +190,7 @@ export async function exportInterior(location: Location, assets: Asset[]) {
   );
   zip.file(
     "SCAN_TO_THREEJS_BRIEF.md",
-    `# Photo-guided equipment location\nUse https://github.com/wesbos/3d-model-anything with its scan-to-threejs skill.\nInputs are camera photos in media/ and equipment metadata in assets.json. These are photo references, not a house-capture LiDAR export. Preserve unknown geometry and mark estimated dimensions. Use supplied measurements, matched-photo review and equipment labels. Export a self-contained GLB under 24 MB with standard geometry and embedded JPG/PNG textures for STV Locate. The asset IDs in assets.json identify the equipment to mark in the returned model.\n`,
+    `# Photo-guided equipment location\nUse https://github.com/wesbos/3d-model-anything with its scan-to-threejs skill.\nInputs are camera photos in media/ and equipment metadata in assets.json. These are photo references, not a house-capture LiDAR export. Preserve unknown geometry and mark estimated dimensions. Use supplied measurements, matched-photo review and equipment labels. Export a self-contained GLB under 24 MB with standard geometry and embedded JPG/PNG textures for STV Locate (three.js GLTFExporter with binary: true and embedImages: true, or Blender glTF Binary export with Draco off). Label it in STV Locate as a photo-guided reconstruction unless it was built from a measured LiDAR export. The asset IDs in assets.json identify the equipment to mark in the returned model; STV Locate marks them by tapping inside the uploaded model.\n`,
   );
   zip.file(
     "HOME_PROJECT_BRIEF.md",

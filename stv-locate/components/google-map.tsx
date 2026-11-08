@@ -224,6 +224,41 @@ export default function GoogleMap(props: Props) {
     };
   }, [ready, props.threeD, props.buildingOutline]);
   useEffect(() => {
+    const u = props.userPosition;
+    if (!ready || !map.current || !u || props.threeD) return;
+    const lib = library.current;
+    if (!lib.Circle || !lib.Marker) return;
+    const circle = new lib.Circle({
+      map: map.current,
+      center: { lat: u.lat, lng: u.lng },
+      radius: Math.min(u.accuracy || 0, 2000),
+      strokeColor: "#2f7fe0",
+      strokeWeight: 1,
+      fillColor: "#2f7fe0",
+      fillOpacity: 0.12,
+      clickable: false,
+    });
+    const dot = new lib.Marker({
+      map: map.current,
+      position: { lat: u.lat, lng: u.lng },
+      title: "You are here (GPS)",
+      clickable: false,
+      zIndex: 1000,
+      icon: {
+        path: 0,
+        scale: 8,
+        fillColor: "#2f7fe0",
+        fillOpacity: 1,
+        strokeColor: "#ffffff",
+        strokeWeight: 3,
+      },
+    });
+    return () => {
+      circle.setMap(null);
+      dot.setMap(null);
+    };
+  }, [ready, props.threeD, props.userPosition]);
+  useEffect(() => {
     if (!ready || !props.focus || !map.current) return;
     const f = props.focus,
       m = map.current;
