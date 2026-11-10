@@ -5,8 +5,11 @@
   Vercel project or share a domain/subdomain between them.
 - Name the Vercel project after the project (e.g. `blender-product-video`), so its default domain is
   `<project-name>.vercel.app`. A custom domain, when added, belongs to that one project only.
-- Team: `servingthevibe-8631s-projects`. The Claude Vercel connection is **read-only**: creating,
-  updating and deploying all return 403. Do Vercel changes in the dashboard.
+- Team: `servingthevibe-8631s-projects`. The Claude Vercel MCP connection is **read-only** (403 on
+  writes). Writes go through the REST API instead: a Vercel token is saved as a network secret for
+  `api.vercel.com`, so `curl https://api.vercel.com/... -H "Authorization: Bearer proxy-injected"` works.
+- Static sites are deployed by uploading files (`/v2/files`, then `/v13/deployments` with paths under
+  the project's root directory), not by linking the repo, so one project's pushes never build another.
 - Known issue: this whole repo is connected to the old Vercel project `taylormadegoodies-scrollfilm`,
   so every push to any branch triggers a failing build there. Disconnect the repo from that project
   (Settings → Git → Disconnect) and connect each project to its own Vercel project instead.
@@ -14,4 +17,4 @@
 ## Projects
 | Project | Folder | Vercel project / domain |
 |---|---|---|
-| 3D product videos showcase | `site/` | `blender-product-video` → blender-product-video.vercel.app (not created yet) |
+| 3D product videos showcase | `site/` | `blender-product-video` → https://blender-product-video.vercel.app (Vercel Authentication still on; turn it off for public access) |
